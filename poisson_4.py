@@ -102,6 +102,7 @@ input_file = HDF5File(mesh.mpi_comm(), "u.h5", "r")
 input_file.read(d_u, "Velocity")
 input_file.close()
 
+print(type(d_u))
 
 if __name__ == "__main__":
 	
