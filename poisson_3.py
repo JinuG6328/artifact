@@ -93,8 +93,8 @@ def get_initial_coefficients(K):
 		xx = x.vector()[d]
 		yy = y.vector()[d]
 		if 0.25 < xx < 0.75 and 0.25 < yy < 0.75:
-			#k.vector()[d] = 0.1
-			k.vector()[d] = 1.
+			k.vector()[d] = 0.1
+			#k.vector()[d] = 1.
 		else:
 			k.vector()[d] = 1.0
 	return k
@@ -111,7 +111,7 @@ def get_initial_rhs(P):
 def alpha(ka):
 	return ka
 
-mesh, boundaries = get_mesh(1)
+mesh, boundaries = get_mesh(32)
 W, bcs = get_state_space(mesh, boundaries)
 w = get_state_variable(W)
 K = get_coefficient_space(mesh)
@@ -165,20 +165,3 @@ output_file_vel = HDF5File(mesh.mpi_comm(), "u.h5", "w")
 output_file_vel.write(u, "Velocity")
 output_file_vel.close()
 
-
-pressure_pure = h5py.File('p.h5','r+')
-pressure_noise = pressure_pure['Pressure']['vector_0']
-mu = 0
-sigma = 1
-noise_p = np.random.normal(mu, sigma, pressure_noise.size)
-pressure_noise[...] += noise_p
-pressure_pure.close()
-
-velocity_pure = h5py.File('u.h5','r+')
-velocity_noise = velocity_pure['Velocity']['vector_0']
-size_vel = int(velocity_noise.size/2)
-mean = [0,0]
-cov = [[1,0],[0,1]]
-noise_u = np.random.multivariate_normal(mean, cov, size_vel).flatten()
-velocity_noise[...] += noise_u
-velocity_pure.close()
