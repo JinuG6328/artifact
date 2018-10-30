@@ -7,7 +7,7 @@ mesh = UnitSquareMesh(32, 32)
 V = FunctionSpace(mesh, "CG", 1) # state space
 W = FunctionSpace(mesh, "DG", 0) # control space
 
-z = interpolate(Constant(0), W) # zero initial guess
+z = interpolate(Constant(1), W) # zero initial guess
 z.rename("Control", "Control")
 u = Function(V, name='State')
 v = TestFunction(V)
@@ -21,7 +21,8 @@ solve(F == 0, u, bc)
 set_log_level(ERROR)
 
 # Define regularisation parameter
-alpha = Constant(1e-6)
+alphaval = 0.
+alpha = Constant(alphaval)
 
 # Define observation data
 x = SpatialCoordinate(mesh)
@@ -32,15 +33,35 @@ J = Functional((0.5*inner(u-d, u-d))*dx + 0.5*alpha*z**2*dx)
 
 control = Control(z)
 rf = ReducedFunctional(J, control)
+H1 = hessian(rf, control)
+print(H1)
+q = interpolate(Expression("2*pi*pi*sin(pi*x[0])*sin(pi*x[1])", degree = 2), W)
+rfval = rf(z)
+H1z = H1(z)
+print(H1z)
 H = hessian(J, control)
 
 
 q = interpolate(Expression("2*pi*pi*sin(pi*x[0])*sin(pi*x[1])", degree = 2), W)
-u = interpolate(Expression("sin(pi*x[0])*sin(pi*x[1])", degree = 2), V)
+vel = interpolate(Expression("sin(pi*x[0])*sin(pi*x[1])", degree = 2), W)
 #print(type(q))
+
+Hq = H(q)
+print(Hq)
+H1q = H1(q)
+print(H1q)
 K = inner(H(q),q)
+K1 = H(q).vector().inner(q.vector())
 print(type(K))
-print(K)
+print(K1)
+
+z_squared=q.vector().inner(q.vector())
+u_squared = vel.vector().inner(vel.vector())
+print(z_squared)
+print(u_squared)
+K2 = alphaval * z_squared - u_squared
+print (K2)
+
 #print(type(H(q)))
 #print("Hi")
 #print(H(q))
