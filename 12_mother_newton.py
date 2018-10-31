@@ -2,7 +2,7 @@ from dolfin import *
 from dolfin_adjoint import *
 
 # Declare mesh and function spaces
-mesh = UnitSquareMesh(32, 32)
+mesh = UnitSquareMesh(64, 64)
 
 V = FunctionSpace(mesh, "CG", 1) # state space
 W = FunctionSpace(mesh, "DG", 0) # control space
@@ -33,24 +33,25 @@ J = Functional((0.5*inner(u-d, u-d))*dx + 0.5*alpha*z**2*dx)
 
 control = Control(z)
 rf = ReducedFunctional(J, control)
-H1 = hessian(rf, control)
-print(H1)
+print(rf)
+print(isinstance(rf, Functional))
 q = interpolate(Expression("2*pi*pi*sin(pi*x[0])*sin(pi*x[1])", degree = 2), W)
-rfval = rf(z)
-H1z = H1(z)
-print(H1z)
-H = hessian(J, control)
+H1q = rf.hessian(q)
+print(H1q)
+#H = hessian(J, control)
 
 
-q = interpolate(Expression("2*pi*pi*sin(pi*x[0])*sin(pi*x[1])", degree = 2), W)
+#q = interpolate(Expression("2*pi*pi*sin(pi*x[0])*sin(pi*x[1])", degree = 2), W)
 vel = interpolate(Expression("sin(pi*x[0])*sin(pi*x[1])", degree = 2), W)
 #print(type(q))
 
-Hq = H(q)
-print(Hq)
-H1q = H1(q)
-print(H1q)
-K = inner(H(q),q)
+#Hq = H(q)
+#print(Hq)
+#H1q = H1(q)
+#print(H1q)
+#K = inner(H(q),q)
+K = q.vector().inner(H1q.vector())
+print(('K=',K))
 K1 = H(q).vector().inner(q.vector())
 print(type(K))
 print(K1)
