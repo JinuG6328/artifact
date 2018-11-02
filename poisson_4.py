@@ -129,7 +129,7 @@ if __name__ == "__main__":
 	print(type(H))
 	lb = 0.0
 	ub = 1.0
-
+#224 the paper
 	problem = MinimizationProblem(Jhat, bounds=(lb, ub))
 
 	parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 100}
