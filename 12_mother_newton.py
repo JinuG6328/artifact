@@ -211,8 +211,9 @@ def randomized_svd(M, n_components, n_oversamples=10, n_iter='auto',
     Q = randomized_range_finder(rf, n_random, n_iter, size, power_iteration_normalizer, random_state)
                                 #(A, size, n_iter, Size_f_rf, power_iteration_normalizer='auto', random_state=None):
 
+    # Change m to rf
     # project M to the (k + p) dimensional space using the basis vectors
-    B = safe_sparse_dot(Q.T, M)
+    B = safe_sparse_dot(Q.T, rf)
 
     # compute the SVD on the thin matrix: (k + p) wide
     Uhat, s, V = linalg.svd(B, full_matrices=False)
@@ -276,14 +277,15 @@ print(isinstance(rf,ReducedFunctional))
 
 # Define z and u 
 q = interpolate(Expression("2*pi*pi*sin(pi*x[0])*sin(pi*x[1])", degree = 2), W)
+print(type(q))
 vel = interpolate(Expression("sin(pi*x[0])*sin(pi*x[1])", degree = 2), W)
 
 # Calculate reducedfunctional hessian
-x = [0 for i in range(32)]
+x = [0 for i in range(64)]
 x[0] = 1
 print(x)
 H1q = rf.hessian(q)
-#H2q = rf.hessian(x)
+H2q = rf.hessian(x)
 print(H1q)
 print(type(H1q))
 
