@@ -4,14 +4,27 @@ from dolfin_adjoint import *
 import numpy as np
 from scipy import linalg, sparse
 from sklearn.utils import *
-
+from sklearn.utils.extmath import svd_flip
 
 def safe_sparse_dot(a, b):
     
     if isinstance(a, ReducedFunctional):
+        # First: get the function space
+        fs = rf.controls[0].coeff.function_space()
+        q_dot = Function(fs)
+        c_dot = Function(fs)
+        c = np.ndarray(b.shape)
+        print(c.shape)
         for i in range(len(b.T)):
+            #import pdb
+            #pdb.set_trace()
             print(b.T[i])
-            c[i] = a.hessian(b.T[i])
+            q_dot.vector()[:] = numpy.ascontiguousarray(b.T[i])
+
+
+            c_dot = a.hessian(q_dot,project=True)
+            c[:,i] = c_dot.vector()[:]
+            print(c[i])
         print(c)
         return c
     else:
@@ -69,7 +82,7 @@ def randomized_range_finder(A, size, n_iter, Size_f_rf, power_iteration_normaliz
     random_state = check_random_state(random_state)
 
     # Generating normal random vectors with shape: (A.shape[1], size)
-    Q = random_state.normal(size=(Size_f_rf, size))
+    Q = random_state.normal(size=(Size_f_rf, size)).astype('float_')
     # if A.dtype.kind == 'f':
     #     # Ensure f32 is preserved as f32
     #     Q = Q.astype(A.dtype, copy=False)
@@ -89,10 +102,12 @@ def randomized_range_finder(A, size, n_iter, Size_f_rf, power_iteration_normaliz
             Q = safe_sparse_dot(A.T, Q)
         elif power_iteration_normalizer == 'LU':
             Q, _ = linalg.lu(safe_sparse_dot(A, Q), permute_l=True)
-            Q, _ = linalg.lu(safe_sparse_dot(A.T, Q), permute_l=True)
+            # TODO: rf.hessian transpose?
+            Q, _ = linalg.lu(safe_sparse_dot(A, Q), permute_l=True)
         elif power_iteration_normalizer == 'QR':
             Q, _ = linalg.qr(safe_sparse_dot(A, Q), mode='economic')
-            Q, _ = linalg.qr(safe_sparse_dot(A.T, Q), mode='economic')
+            # TODO: rf.hessian transpose?
+            Q, _ = linalg.qr(safe_sparse_dot(A, Q), mode='economic')
 
     # Sample the range of A using by linear projection of Q
     # Extract an orthonormal basis
@@ -213,7 +228,9 @@ def randomized_svd(M, n_components, n_oversamples=10, n_iter='auto',
 
     # Change m to rf
     # project M to the (k + p) dimensional space using the basis vectors
-    B = safe_sparse_dot(Q.T, rf)
+    #
+    B = safe_sparse_dot(rf, Q)
+    B = B.T
 
     # compute the SVD on the thin matrix: (k + p) wide
     Uhat, s, V = linalg.svd(B, full_matrices=False)
@@ -239,7 +256,7 @@ def randomized_svd(M, n_components, n_oversamples=10, n_iter='auto',
 
 
 # Declare mesh and function spaces
-Size = 32
+Size = 64
 mesh = UnitSquareMesh(Size, Size)
 
 V = FunctionSpace(mesh, "CG", 1) # state space
@@ -277,7 +294,8 @@ print(isinstance(rf,ReducedFunctional))
 
 # Define z and u 
 q = interpolate(Expression("2*pi*pi*sin(pi*x[0])*sin(pi*x[1])", degree = 2), W)
-print(type(q))
+
+print(type(q.vector()))
 vel = interpolate(Expression("sin(pi*x[0])*sin(pi*x[1])", degree = 2), W)
 
 # Calculate reducedfunctional hessian
@@ -285,14 +303,14 @@ x = [0 for i in range(64)]
 x[0] = 1
 print(x)
 H1q = rf.hessian(q)
-H2q = rf.hessian(x)
+#H2q = rf.hessian(x)
 print(H1q)
 print(type(H1q))
 
 n_components = 10
 n_iter = 5
-U, Sigma, VT = randomized_svd(rf, n_components= n_components, n_iter= n_iter, size = Size)
-
+U, Sigma, VT = randomized_svd(rf, n_components= n_components, n_iter= n_iter, size = 2*Size*Size) # size should be the discrete vector size of q
+print(Sigma)
 
 # Validate whether hessian works
 K = q.vector().inner(H1q.vector())
