@@ -10,7 +10,7 @@ def safe_sparse_dot(a, b):
     
     if isinstance(a, ReducedFunctional):
         # First: get the function space
-        fs = rf.controls[0].coeff.function_space()
+        fs = a.controls[0].coeff.function_space()
         q_dot = Function(fs)
         c_dot = Function(fs)
         c = np.ndarray(b.shape)
@@ -223,7 +223,7 @@ def randomized_svd(M, n_components, n_oversamples=10, n_iter='auto',
     #     M = M.T
 
     # Change m to rf
-    Q = randomized_range_finder(rf, n_random, n_iter, size, power_iteration_normalizer, random_state)
+    Q = randomized_range_finder(M, n_random, n_iter, size, power_iteration_normalizer, random_state)
                                 #(A, size, n_iter, Size_f_rf, power_iteration_normalizer='auto', random_state=None):
 
     # Change m to rf
