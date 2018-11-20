@@ -14,15 +14,22 @@ def safe_sparse_dot(a, b):
     
     if isinstance(a, ReducedFunctional):
         # First: get the function space
+        # import pdb;
+        # pdb.set_trace()
         fs = a.controls[0].coeff.function_space()
+        print("fs", type(fs), fs)
         q_dot = Function(fs)
         c_dot = Function(fs)
         c = np.ndarray(b.shape)
         print(c.shape)
         for i in range(len(b.T)):
-            #import pdb
-            #pdb.set_trace()
-            print(b.T[i])
+            
+            print("b", b.T[i])
+            print("len", len(b.T[i]))
+            print("q", q_dot.vector()[:])
+            print("len_q", len(q_dot.vector()[:]))
+            # import pdb
+            # pdb.set_trace()
             q_dot.vector()[:] = numpy.ascontiguousarray(b.T[i])
 
 
@@ -131,7 +138,7 @@ def randomized_svd(M, n_components, n_oversamples=10, n_iter='auto',
     ----------
     M : ndarray or sparse matrix
         Matrix to decompose
-R
+
     n_components : int
         Number of singular values and vectors to extract.
 
@@ -227,13 +234,15 @@ R
     #     M = M.T
 
     # Change m to rf
+    # import pdb
+    # pdb.set_trace()
     Q = randomized_range_finder(M, n_random, n_iter, size, power_iteration_normalizer, random_state)
-                                #(A, size, n_iter, Size_f_rf, power_iteration_normalizer='auto', random_state=None):
+                              #(A, size, n_iter, Size_f_rf, power_iteration_normalizer='auto', random_state=None):
 
     # Change m to rf
     # project M to the (k + p) dimensional space using the basis vectors
     #
-    B = safe_sparse_dot(rf, Q)
+    B = safe_sparse_dot(M, Q)
     B = B.T
 
     # compute the SVD on the thin matrix: (k + p) wide
@@ -380,32 +389,33 @@ if __name__ == "__main__":
 	Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
 	# H = hessian(J, m)
 	# print(type(H))
-	n_components = 10
+	n_components = 100
 	n_iter = 5
-	U, Sigma, VT = randomized_svd(Jhat, n_components= n_components, n_iter= n_iter, size = 2*Size*Size) # size should be the discrete vector size of q
+	U, Sigma, VT = randomized_svd(Jhat, n_components= n_components, n_iter= n_iter, size = (Size+1)*(Size+1)) # size should be the discrete vector size of q
+    # This if for RT
 	print(Sigma)
-	lb = 0.0
-	ub = 1.0
-#224 the paper
-	problem = MinimizationProblem(Jhat, bounds=(lb, ub))
+# 	lb = 0.0
+# 	ub = 1.0
+# #224 the paper
+# 	problem = MinimizationProblem(Jhat, bounds=(lb, ub))
 
-	parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 100}
-	solver = IPOPTSolver(problem, parameters=parameters)
-	ka_opt = solver.solve()
+# 	parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 100}
+# 	solver = IPOPTSolver(problem, parameters=parameters)
+# 	ka_opt = solver.solve()
 
-	xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Alpha ,power))
-	xdmf_filename.write(ka_opt)
+# 	xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Alpha ,power))
+# 	xdmf_filename.write(ka_opt)
 
-	(u1,p1) = w.split(True)
-	velocity_opt = File("opt_velocity.pvd")
-	V2 = W.sub(0).collapse()
-	velo_viz = Function(V2, name="velocity")
-	velo_viz.assign(u1)
-	velocity_opt << velo_viz
+# 	(u1,p1) = w.split(True)
+# 	velocity_opt = File("opt_velocity.pvd")
+# 	V2 = W.sub(0).collapse()
+# 	velo_viz = Function(V2, name="velocity")
+# 	velo_viz.assign(u1)
+# 	velocity_opt << velo_viz
 
 
-	pressure_opt = File("opt_pressure.pvd")
-	V3 = W.sub(1).collapse()
-	pressure_viz = Function(V3, name="pressure")
-	pressure_viz.assign(p1)
-	pressure_opt << pressure_viz
+# 	pressure_opt = File("opt_pressure.pvd")
+# 	V3 = W.sub(1).collapse()
+# 	pressure_viz = Function(V3, name="pressure")
+# 	pressure_viz.assign(p1)
+# 	pressure_opt << pressure_viz

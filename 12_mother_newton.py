@@ -16,8 +16,8 @@ def safe_sparse_dot(a, b):
         c = np.ndarray(b.shape)
         print(c.shape)
         for i in range(len(b.T)):
-            #import pdb
-            #pdb.set_trace()
+            import pdb
+            pdb.set_trace()
             print(b.T[i])
             q_dot.vector()[:] = numpy.ascontiguousarray(b.T[i])
 
@@ -229,7 +229,7 @@ def randomized_svd(M, n_components, n_oversamples=10, n_iter='auto',
     # Change m to rf
     # project M to the (k + p) dimensional space using the basis vectors
     #
-    B = safe_sparse_dot(rf, Q)
+    B = safe_sparse_dot(M, Q)
     B = B.T
 
     # compute the SVD on the thin matrix: (k + p) wide
