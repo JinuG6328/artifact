@@ -10,6 +10,7 @@ from sklearn.utils import *
 from sklearn.utils.extmath import svd_flip
 
 
+# TODO: break out this into a separate file
 def safe_sparse_dot(a, b):
     
     if isinstance(a, ReducedFunctional):
@@ -380,6 +381,7 @@ if __name__ == "__main__":
 		ka_viz.assign(ka)
 		controls << ka_viz
 	
+        # TODO: see if we can construct a J consisting of a pressure at fixed number of evaluation points
 	J = Functional((0.5*inner(d_p-p, d_p-p)+0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
 	#J = Functional((0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
 	#J = Functional((0.5*inner(d_p-p, d_p-p))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
@@ -391,6 +393,7 @@ if __name__ == "__main__":
 	# print(type(H))
 	n_components = 100
 	n_iter = 5
+        # TODO: use A -- the function space of the parameter -- to get the size
 	U, Sigma, VT = randomized_svd(Jhat, n_components= n_components, n_iter= n_iter, size = (Size+1)*(Size+1)) # size should be the discrete vector size of q
     # This if for RT
 	print(Sigma)
