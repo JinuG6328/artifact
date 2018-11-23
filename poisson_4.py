@@ -25,55 +25,56 @@ def forward_problem(ka):
 	solve(a==l, w, bcs)
 	return w
 
-Size = 32
-mesh, boundaries = get_mesh(Size)
-W, bcs = get_state_space(mesh, boundaries)
-w = get_state_variable(W)
-A = get_function_space(mesh)
-V = Constant(0.5)
-Alpha = Constant(0.001)
-power = 1.
+if __name__ == "__main__":
+    Size = 32
+    mesh, boundaries = get_mesh(Size)
+    W, bcs = get_state_space(mesh, boundaries)
+    w = get_state_variable(W)
+    A = get_function_space(mesh)
+    V = Constant(0.5)
+    Alpha = Constant(0.001)
+    power = 1.
 
-d_p = Function(W.sub(1).collapse())
-input_file = HDF5File(mesh.mpi_comm(), "p_n.h5", "r")
-input_file.read(d_p, "Pressure")
-input_file.close()
+    d_p = Function(W.sub(1).collapse())
+    input_file = HDF5File(mesh.mpi_comm(), "p_n.h5", "r")
+    input_file.read(d_p, "Pressure")
+    input_file.close()
 
-d_u = Function(W.sub(0).collapse())
-input_file = HDF5File(mesh.mpi_comm(), "u_n.h5", "r")
-input_file.read(d_u, "Velocity")
-input_file.close()
+    d_u = Function(W.sub(0).collapse())
+    input_file = HDF5File(mesh.mpi_comm(), "u_n.h5", "r")
+    input_file.read(d_u, "Velocity")
+    input_file.close()
 
-print(type(d_u))
+    print(type(d_u))
 
-ka = interpolate(V, A, name="Control") # initial guess.
-w = forward_problem(ka) 
-(u,p) = split(w)
-#(u,p) = w.split(True)
+    ka = interpolate(V, A, name="Control") # initial guess.
+    w = forward_problem(ka) 
+    (u,p) = split(w)
+	#(u,p) = w.split(True)
 
-controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (Alpha, power) )
-ka_viz = Function(A, name="ControlVisualisation")
+    controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (Alpha, power) )
+    ka_viz = Function(A, name="ControlVisualisation")
+    
+    def eval_cb(j, ka):
+        ka_viz.assign(ka)
+        controls << ka_viz
+	
+        # TODO: see if we can construct a J consisting of a pressure at fixed number of evaluation points
+    J = Functional((0.5*inner(d_p-p, d_p-p)+0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
+	#J = Functional((0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
+	#J = Functional((0.5*inner(d_p-p, d_p-p))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
 
-def eval_cb(j, ka):
-    ka_viz.assign(ka)
-    controls << ka_viz
-
-    # TODO: see if we can construct a J consisting of a pressure at fixed number of evaluation points
-J = Functional((0.5*inner(d_p-p, d_p-p)+0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
-#J = Functional((0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
-#J = Functional((0.5*inner(d_p-p, d_p-p))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
-
-#norm
-m = Control(ka)
-Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
-# H = hessian(J, m)
-# print(type(H))
-n_components = 10
-n_iter = 5
-    # TODO: use A -- the function space of the parameter -- to get the size
-U, Sigma, VT = randomized_svd(Jhat, n_components= n_components, n_iter= n_iter, size = (Size+1)*(Size+1)) # size should be the discrete vector size of q
-# This if for RT
-print(Sigma)
+	#norm
+    m = Control(ka)
+    Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
+	# H = hessian(J, m)
+	# print(type(H))
+    n_components = 10
+    n_iter = 5
+        # TODO: use A -- the function space of the parameter -- to get the size
+    U, Sigma, VT = randomized_svd(Jhat, n_components= n_components, n_iter= n_iter, size = (Size+1)*(Size+1)) # size should be the discrete vector size of q
+    # This if for RT
+    print(Sigma)
 # 	lb = 0.0
 # 	ub = 1.0
 # #224 the paper
