@@ -41,7 +41,7 @@ def get_state_space(mesh, boundaries=None):
 
     #setting two variable
     V = FiniteElement("RT", mesh.ufl_cell(), 2)
-    Q = FiniteElement("DG", mesh.ufl_cell(), 1)
+    Q = FiniteElement("CG", mesh.ufl_cell(), 1)
 
     #making mixed space
     VQ = V*Q
