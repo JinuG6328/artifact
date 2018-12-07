@@ -4,6 +4,8 @@ import sympy as sym
 import moola
 import numpy as np
 import math
+import os
+import argparse
 
 from scipy import linalg, sparse
 from sklearn.utils import *
@@ -26,6 +28,7 @@ def forward_problem(ka):
 	return w
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
     Size = 32
     mesh, boundaries = get_mesh(Size)
     W, bcs = get_state_space(mesh, boundaries)
@@ -49,22 +52,23 @@ if __name__ == "__main__":
     w = forward_problem(ka) 
     (u,p) = split(w)
     
-    # (u,p) = w.split(True)
-    # print(type(u))
-    mesh1 = UnitSquareMesh(8,8)
-    A1 = get_function_space(mesh1)
-    #F1 = Function(A1)
-    #F2 = Function(A1)
-    #print(type(d_u))
-    #lp = LagrangeInterpolator()
-    #lp.interpolate(F1, d_p)
-    d_p1 = project(d_p,A1)
-    #print(type(F1))
-    #import pdb
-    #pdb.set_trace()
-    p1= project(p,A1)
-    # import pdb
-    # pdb.set_trace()
+    #\(u,p) = w.split(True)
+    # # print(type(u))
+    # mesh1 = UnitSquareMesh(8,8)
+    # A1 = get_function_space(mesh1)
+    # # #F1 = Function(A1)
+    # # #F2 = Function(A1)
+    # # #print(type(d_u))
+    # # #lp = LagrangeInterpolator()
+    # # #lp.interpolate(F1, d_p)
+    # # d_p1 = interpolate(d_p,A1)
+    # print("Finish d_p1")
+    # # #print(type(F1))
+    # # #import pdb
+    # # #pdb.set_trace()
+    # p1= interpolate(p1,A1)
+    # # # import pdb
+    # # # pdb.set_trace()
     
     #lp.interpolate(F2, p)
 
@@ -76,9 +80,17 @@ if __name__ == "__main__":
         controls << ka_viz
 	
         # TODO: see if we can construct a J consisting of a pressure at fixed number of evaluation points
-    #J = Functional((0.5*inner(d_p-p, d_p-p)+0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
+    #J = Functional((0.5*inner(z_i, d_p-p)+0.5*inner(r_i, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
+    
+    z_i = Expression("sin(ka*x[0])*sin(ja*x[1])", ka = 0, ja = 0, degree = 3)
+    
+    for k in range(1,11):
+        for j in range(1,11):
+            z_i = Expression("sin(k*x[0])*sin(j*x[1])", k = k, j = j, degree = 2)
+
+    J = Functional((0.5*inner(z_i, d_p-p))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
 	#J = Functional((0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
-    J = Functional((0.5*inner(d_p1-p1, d_p1-p1))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
+    #J = Functional((0.5*inner(d_p1-p1, d_p1-p1))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
 	#J = Functional((0.5*inner(d_p-p, d_p-p))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
 
 	#norm
@@ -111,7 +123,7 @@ if __name__ == "__main__":
     # velo_viz.assign(u1)
     # velocity_opt << velo_viz
 
-
+#argparse
     # pressure_opt = File("opt_pressure.pvd")
     # V3 = W.sub(1).collapse()
     # pressure_viz = Function(V3, name="pressure")
