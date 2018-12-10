@@ -13,7 +13,7 @@ from sklearn.utils.extmath import svd_flip
 from SVD import safe_sparse_dot, randomized_svd, randomized_range_finder
 from Initialize import *
 
-set_log_level(ERROR)
+#set_log_level(ERROR)
 
 def forward_problem(ka):
 	(u,p) = TrialFunctions(W)
@@ -48,7 +48,8 @@ if __name__ == "__main__":
     input_file.read(d_u, "Velocity")
     input_file.close()
 
-    ka = interpolate(V, A, name="Control") # initial guess.
+    #version check
+    ka = interpolate(V, A) # initial guess.
     w = forward_problem(ka) 
     (u,p) = split(w)
     
@@ -83,12 +84,16 @@ if __name__ == "__main__":
     #J = Functional((0.5*inner(z_i, d_p-p)+0.5*inner(r_i, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
     
     z_i = Expression("sin(ka*x[0])*sin(ja*x[1])", ka = 0, ja = 0, degree = 3)
-    
+
+    J = assemble(Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
+    print(type(J))
     for k in range(1,11):
         for j in range(1,11):
-            z_i = Expression("sin(k*x[0])*sin(j*x[1])", k = k, j = j, degree = 2)
+            E_i = Expression("sin(k*x[0])*sin(j*x[1])", k = k, j = j, degree = 3)
+            J_i = assemble(0.5*inner(E_i, d_p - p)*dx)
+            J = J + J_i * J_i
 
-    J = Functional((0.5*inner(z_i, d_p-p))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
+    #J = Functional(((0.5*inner(z_i, d_p-p))*dx)**2 + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
 	#J = Functional((0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
     #J = Functional((0.5*inner(d_p1-p1, d_p1-p1))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
 	#J = Functional((0.5*inner(d_p-p, d_p-p))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
@@ -96,12 +101,13 @@ if __name__ == "__main__":
 	#norm
     m = Control(ka)
     Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
+    print(type(Jhat))
 	# H = hessian(J, m)
 	# print(type(H))
-    # n_components = 10
-    # n_iter = 5
-    #     # TODO: use A -- the function space of the parameter -- to get the size
-    # U, Sigma, VT = randomized_svd(Jhat, n_components= n_components, n_iter= n_iter, size = (Size+1)*(Size+1)) # size should be the discrete vector size of q
+    n_components = 10
+    n_iter = 5
+        # TODO: use A -- the function space of the parameter -- to get the size
+    U, Sigma, VT = randomized_svd(Jhat, n_components= n_components, n_iter= n_iter, size = (Size+1)*(Size+1)) # size should be the discrete vector size of q
     # # This if for RT
     # print(Sigma)
     lb = 0.0

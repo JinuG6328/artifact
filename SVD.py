@@ -7,17 +7,19 @@ import numpy as np
 def safe_sparse_dot(a, b):
     
     if isinstance(a, ReducedFunctional):
-        
-        fs = a.controls[0].coeff.function_space()
+        import pdb
+        pdb.set_trace()
+        fs = a.controls[0].function_space()
         q_dot = Function(fs)
         c_dot = Function(fs)
         c = np.ndarray(b.shape)
         for i in range(len(b.T)):
-            q_dot.vector()[:] = numpy.ascontiguousarray(b.T[i])
-            c_dot = a.hessian(q_dot,project=True)
+            q_dot.vector()[:] = np.ascontiguousarray(b.T[i])
+            # c_dot = compute_hessian(a, a.controls[0], q_dot)
+            c_dot = a.hessian(q_dot)
             c[:,i] = c_dot.vector()[:]
-            print(c[i])
-        print(c)
+            #print(c[i])
+        #print(c)
         return c
 
     else:
