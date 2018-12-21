@@ -2,20 +2,26 @@ from fenics import *
 from fenics_adjoint import *
 from scipy import linalg
 from sklearn.utils import *
+from sklearn.utils.extmath import svd_flip
 import numpy as np
+import tensorflow as tf
 
 def safe_sparse_dot(a, b):
     
     if isinstance(a, ReducedFunctional):
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
         fs = a.controls[0].function_space()
         q_dot = Function(fs)
         c_dot = Function(fs)
         c = np.ndarray(b.shape)
+        # tape = get_working_tape()
+        # tape.visualise()
+        print(type(a.functional))
+        hello=compute_gradient(a.functional, a.controls[0])
         for i in range(len(b.T)):
             q_dot.vector()[:] = np.ascontiguousarray(b.T[i])
-            # c_dot = compute_hessian(a, a.controls[0], q_dot)
+            #c_dot = compute_hessian(a.functional, a.controls[0], q_dot)
             c_dot = a.hessian(q_dot)
             c[:,i] = c_dot.vector()[:]
             #print(c[i])
@@ -92,6 +98,7 @@ def randomized_range_finder(A, size, n_iter, Size_f_rf, power_iteration_normaliz
     # Perform power iterations with Q to further 'imprint' the top
     # singular vectors of A in Q
     for i in range(n_iter):
+        print("Power iteration %d" % i)
         if power_iteration_normalizer == 'none':
             Q = safe_sparse_dot(A, Q)
             Q = safe_sparse_dot(A.T, Q)

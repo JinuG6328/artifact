@@ -5,7 +5,7 @@ import numpy as np
 import moola
 import h5py
 
-set_log_level(ERROR)
+#set_log_level(ERROR)
 
 class Left(SubDomain):
 	def inside(self, x, on_boundary):
@@ -111,7 +111,7 @@ def get_initial_rhs(P):
 def alpha(ka):
 	return ka
 
-mesh, boundaries = get_mesh(32)
+mesh, boundaries = get_mesh(16)
 W, bcs = get_state_space(mesh, boundaries)
 w = get_state_variable(W)
 K = get_coefficient_space(mesh)
@@ -145,13 +145,13 @@ pressure = File("etc/pressure.pvd")
 # p += noise
 
 
-V = W.sub(0).collapse()
-v_viz = Function(V, name = "Velocity")
-v_viz.assign(u)
-velocity << v_viz
+# V = W.sub(0).collapse()
+# v_viz = Function(V, name = "Velocity")
+# v_viz.assign(u)
+# velocity << v_viz
 
-pressure << w.split()[1]
-pressure << mesh
+# pressure << w.split()[1]
+# pressure << mesh
 
 # print(type(u))
 # print(p.str())
@@ -165,3 +165,6 @@ output_file_vel = HDF5File(mesh.mpi_comm(), "u.h5", "w")
 output_file_vel.write(u, "Velocity")
 output_file_vel.close()
 
+output_file_vel = HDF5File(mesh.mpi_comm(), "w.h5", "w")
+output_file_vel.write(w, "Mixed")
+output_file_vel.close()
