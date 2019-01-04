@@ -111,7 +111,7 @@ def get_initial_rhs(P):
 def alpha(ka):
 	return ka
 
-mesh, boundaries = get_mesh(16)
+mesh, boundaries = get_mesh(32)
 W, bcs = get_state_space(mesh, boundaries)
 w = get_state_variable(W)
 K = get_coefficient_space(mesh)
@@ -126,8 +126,10 @@ myds = Measure('ds', domain=mesh, subdomain_data=boundaries)
 L1 = dot(v,n)*Constant(-1.)* myds(1)
 L2 = dot(v,n)*Constant(1.)*myds(2)
 l = L1 + L2 
-
-solve(a==l, w, bcs)
+A, b = assemble_system(a, L1 + L2, bcs)
+	#F = a - L1 - L2
+solve(A, w.vector(), b)
+#solve(a==l, w, bcs)
 
 (u1,p1) = split(w)
 (u,p) = w.split(True)

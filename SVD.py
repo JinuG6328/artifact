@@ -9,8 +9,8 @@ import tensorflow as tf
 def safe_sparse_dot(a, b):
     
     if isinstance(a, ReducedFunctional):
-        # import pdb
-        # pdb.set_trace()
+        import pdb
+        pdb.set_trace()
         fs = a.controls[0].function_space()
         q_dot = Function(fs)
         c_dot = Function(fs)
@@ -18,7 +18,7 @@ def safe_sparse_dot(a, b):
         # tape = get_working_tape()
         # tape.visualise()
         print(type(a.functional))
-        hello=compute_gradient(a.functional, a.controls[0])
+        #hello=compute_gradient(a.functional, a.controls[0])
         for i in range(len(b.T)):
             q_dot.vector()[:] = np.ascontiguousarray(b.T[i])
             #c_dot = compute_hessian(a.functional, a.controls[0], q_dot)
@@ -101,7 +101,7 @@ def randomized_range_finder(A, size, n_iter, Size_f_rf, power_iteration_normaliz
         print("Power iteration %d" % i)
         if power_iteration_normalizer == 'none':
             Q = safe_sparse_dot(A, Q)
-            Q = safe_sparse_dot(A.T, Q)
+            Q = safe_sparse_dot(A, Q)
         elif power_iteration_normalizer == 'LU':
             Q, _ = linalg.lu(safe_sparse_dot(A, Q), permute_l=True)
             # TODO: rf.hessian transpose?

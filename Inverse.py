@@ -24,16 +24,7 @@ def forward_problem(ka):
 	solve(A, w.vector(), b)
 	return w
 
-if __name__ == "__main__":
-	Size = 32
-	mesh, boundaries = get_mesh(Size)
-	W, bcs = get_state_space(mesh, boundaries)
-	w = get_state_variable(W)
-	A = get_function_space(mesh)
-	V = Constant(0.5)
-	Alpha = Constant(0.0)
-	power = 1.
-
+def load_the_data(W):
 	d_p = Function(W.sub(1).collapse())
 	input_file = HDF5File(mesh.mpi_comm(), "p_n.h5", "r")
 	input_file.read(d_p, "Pressure")
@@ -48,6 +39,32 @@ if __name__ == "__main__":
 	input_file = HDF5File(mesh.mpi_comm(), "w.h5", "r")
 	input_file.read(d_W, "Mixed")
 	input_file.close()
+	return d_p, d_u, d_W
+
+def Inverse():
+	Size = 32
+	mesh, boundaries = get_mesh(Size)
+	W, bcs = get_state_space(mesh, boundaries)
+	w = get_state_variable(W)
+	A = get_function_space(mesh)
+	V = Constant(0.5)
+	Alpha = Constant(0.0)
+	power = 1.
+
+	# d_p = Function(W.sub(1).collapse())
+	# input_file = HDF5File(mesh.mpi_comm(), "p_n.h5", "r")
+	# input_file.read(d_p, "Pressure")
+	# input_file.close()
+
+	# d_u = Function(W.sub(0).collapse())
+	# input_file = HDF5File(mesh.mpi_comm(), "u_n.h5", "r")
+	# input_file.read(d_u, "Velocity")
+	# input_file.close()
+
+	# d_W = Function(W)
+	# input_file = HDF5File(mesh.mpi_comm(), "w.h5", "r")
+	# input_file.read(d_W, "Mixed")
+	# input_file.close()
 
 	mesh1 = UnitSquareMesh(8,8)
 	A1 = get_function_space(mesh1)
@@ -73,19 +90,19 @@ if __name__ == "__main__":
 	
 	#lp.interpolate(F2, p)
 
-	Size1 = 1
-	mesh1, boundaries1 = get_mesh(Size1)
-	W1, bcs1 = get_state_space(mesh1, boundaries1)
+	# Size1 = 1
+	# mesh1, boundaries1 = get_mesh(Size1)
+	# W1, bcs1 = get_state_space(mesh1, boundaries1)
    
-	DW = Function(W1)
-	SW = Function(W1)
+	# DW = Function(W1)
+	# SW = Function(W1)
 
-	A1 = get_function_space(mesh1)
-	K1 = Function(A1)
-	K1.interpolate(ka)
+	# A1 = get_function_space(mesh1)
+	# K1 = Function(A1)
+	# K1.interpolate(ka)
 
-	DW.interpolate(d_W)
-	SW.interpolate(w)
+	# DW.interpolate(d_W)
+	# SW.interpolate(w)
 
 	controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (Alpha, power) )
 	ka_viz = Function(A, name="ControlVisualisation")
@@ -97,8 +114,8 @@ if __name__ == "__main__":
 		# TODO: see if we can construct a J consisting of a pressure at fixed number of evaluation points
 	#J = Functional((0.5*inner(d_p-p, d_p-p)+0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
 	#J = Functional((0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
-	#import pdb
-	#pdb.set_trace()
+	import pdb
+	pdb.set_trace()
 	#J = assemble((0.5*inner(DW[1]-SW[1], DW[1]-SW[1]))*dx)
 	e = Expression("sin(pi * x[0]) * sin(pi * x[1])", degree = 1)
 	f = interpolate(e,W.sub(1).collapse())
