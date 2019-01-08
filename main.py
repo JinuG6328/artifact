@@ -12,16 +12,30 @@ from scipy import linalg, sparse
 from sklearn.utils import *
 from sklearn.utils.extmath import svd_flip
 from SVD import safe_sparse_dot, randomized_svd, randomized_range_finder
-from Initialize import *
+from initialize import *
 
 from Inverse import *
+from discretization import Discretization
+from forward import Forward
+from misfit import Misfit
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--forward", action="store_true", help="solve the forward problem")
 parser.add_argument("-a", "--add_noise", action="store_true", help="add the noise in the observation")
 parser.add_argument("-i", "--inverse", action="store_true", help="solve the inverse problem")
-#parser.add_argument("-s", "--size", action="store_const", help="set the size of the mesh")
+Discretization.add_args(parser)
 args = parser.parse_args()
+
+disc = Discretization(args)
+forward = Forward(disc)
+misfit = Misfit(forward)
+
+import pdb
+pdb.set_trace()
+
+print(disc)
+
+
 
 if __name__ == "__main__":
 	if args.forward:
