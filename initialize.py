@@ -67,3 +67,26 @@ def get_function_space(mesh):
 
 def alpha(ka):
     return ka
+
+def get_coefficient_space(mesh):
+    K = FunctionSpace(mesh, 'DG', 0)
+    return K    
+
+def get_initial_coefficients(K):
+    mesh = K.mesh()
+    x = interpolate(Expression("x[0]", degree = 1,), K)
+    y = interpolate(Expression("x[1]", degree = 1,), K)
+
+    k = Function(K)
+    v2d = K.dofmap().dofs()
+
+    #len(v2d)=128 in n = 8
+    for d in v2d:
+        xx = x.vector()[d]
+        yy = y.vector()[d]
+        if 0.25 < xx < 0.75 and 0.25 < yy < 0.75:
+            k.vector()[d] = 0.1
+            #k.vector()[d] = 1.
+        else:
+            k.vector()[d] = 1.0
+    return k
