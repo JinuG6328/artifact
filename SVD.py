@@ -9,8 +9,8 @@ import tensorflow as tf
 def safe_sparse_dot(a, b):
     
     if isinstance(a, ReducedFunctional):
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
         fs = a.controls[0].function_space()
         q_dot = Function(fs)
         c_dot = Function(fs)

@@ -16,8 +16,9 @@ from initialize import *
 
 from Inverse import *
 from discretization import Discretization
-from forward import Forward
+from state import State
 from misfit import Misfit
+from observation import Observation
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--forward", action="store_true", help="solve the forward problem")
@@ -26,9 +27,12 @@ parser.add_argument("-i", "--inverse", action="store_true", help="solve the inve
 Discretization.add_args(parser)
 args = parser.parse_args()
 
+
+
 disc = Discretization(args)
-forward = Forward(disc)
-misfit = Misfit(forward)
+observation = Observation(disc)
+#state = State(disc)
+#misfit = Misfit(state)
 
 import pdb
 pdb.set_trace()
