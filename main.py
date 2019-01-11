@@ -22,31 +22,24 @@ from observation import Observation
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--forward", action="store_true", help="solve the forward problem")
-parser.add_argument("-a", "--add_noise", action="store_true", help="add the noise in the observation")
 parser.add_argument("-i", "--inverse", action="store_true", help="solve the inverse problem")
-Discretization.add_args(parser)
-args = parser.parse_args()
-
-
-
-disc = Discretization(args)
-observation = Observation(disc)
-#state = State(disc)
-#misfit = Misfit(state)
-
-import pdb
-pdb.set_trace()
-
-print(disc)
-
+parser.add_argument("-o", "--observation", action="store_true", help="make the observation")
+parser.add_argument("-a", "--add_noise", type=int, default=0, help="add noise with specific standard deviation")
+parser.add_argument("-r", "--regularization", type=int, default=0, help="power of regularization term ")
 
 
 if __name__ == "__main__":
-	if args.forward:
-		os.system('python poisson_3.py')
+	
+	Discretization.add_args(parser)
+	args = parser.parse_args()
+	disc = Discretization(args)
+	
+	if args.observation:
+		observation = Observation(disc)
 
-	if args.add_noise:
-		os.system('add_noise.py')
+	import pdb
+	pdb.set_trace()
+		
 
 	if args.inverse:
 		Size = 32

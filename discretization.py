@@ -5,7 +5,6 @@ import initialize
 
 class Discretization(object):
 
-
     def __new__(self, namespace):
         self.n = None
         self.mesh = None
