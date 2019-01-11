@@ -30,6 +30,7 @@ class Observation(Discretization):
         self.cov_u = None
         self.noise_u = None
         self.noise_p = None
+        self.noise_w = None
         Observation.__init__(self)
         return self
 
@@ -51,19 +52,26 @@ class Observation(Discretization):
         (self.u_n,self.p_n) = self.w.split(deepcopy=True)
         self.size_u_n = int(self.u_n.vector().size()/2)
         self.size_p_n = self.p_n.vector().size()
-        self.cov_u = 1.0
+        self.cov_u = 0.01
         self.noise_u = np.random.multivariate_normal([0,0], [[self.cov_u,0],[0,self.cov_u]], self.size_u_n).flatten()
         self.u_n.vector()[:] += self.noise_u
 
-        self.sig_p = 1.0
+        self.sig_p = 0.01
         self.noise_p = np.random.normal(0, self.sig_p, self.size_p_n)
         self.p_n.vector()[:] += self.noise_p 
-        
-        import pdb
-        pdb.set_trace()
-        
-        output_file_vel = HDF5File(self.mesh.mpi_comm(), "w.h5", "w")
-        output_file_vel.write(self.w, "Mixed")
-        output_file_vel.close()
+       
+        self.noise_w = np.concatenate((self.noise_u, self.noise_p), axis=None)
+        self.w.vector()[:] += self.noise_w
 
+        output_file_mix = HDF5File(self.mesh.mpi_comm(), "w.h5", "w")
+        output_file_mix.write(self.w, "Mixed")
+        output_file_mix.close()
+
+        output_file_p = HDF5File(self.mesh.mpi_comm(), "p.h5", "w")
+        output_file_p.write(self.p_n, "Pressure")
+        output_file_p.close()
+
+        output_file_vel = HDF5File(self.mesh.mpi_comm(), "u.h5", "w")
+        output_file_vel.write(self.u_n, "Velocity")
+        output_file_vel.close()
 

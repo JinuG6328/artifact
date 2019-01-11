@@ -19,6 +19,7 @@ from discretization import Discretization
 from state import State
 from misfit import Misfit
 from observation import Observation
+from regularization import Regularization
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--forward", action="store_true", help="solve the forward problem")
@@ -37,31 +38,9 @@ if __name__ == "__main__":
 	if args.observation:
 		observation = Observation(disc)
 
+	state = State(disc)
+	reg = Regularization(state)
+	misfit = Misfit(state)
 	import pdb
 	pdb.set_trace()
 		
-
-	if args.inverse:
-		Size = 32
-		mesh, boundaries = get_mesh(Size)
-		W, bcs = get_state_space(mesh, boundaries)
-		w = get_state_variable(W)
-		A = get_function_space(mesh)
-		V = Constant(0.5)
-		Alpha = Constant(0.0)
-		power = 1.
-		d_p, d_u, d_W = load_the_data(W)
-
-		ka = interpolate(V, A) # initial guess.
-		w = forward_problem(ka) 
-		(u,p) = split(w)
-
-		e = Expression("sin(pi * x[0]) * sin(pi * x[1])", degree = 1)
-		f = interpolate(e,W.sub(1).collapse())
-		J = assemble((0.5*inner(w[1]-d_W[1], f))*dx)
-		J = J*J
-
-		n_components = 3
-		n_iter = 3
-		U, Sigma, VT = randomized_svd(Jhat, n_components= n_components, n_iter= n_iter, size = (Size+1)*(Size+1)) # size should be the discrete vector size of q
-		print(Sigma)
