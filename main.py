@@ -32,15 +32,36 @@ parser.add_argument("-r", "--regularization", type=int, default=0, help="power o
 if __name__ == "__main__":
 	
 	Discretization.add_args(parser)
+	# Misfit.add_args(parser)
+	# Regularization.add_args(parser)
 	args = parser.parse_args()
 	disc = Discretization(args)
-	
-	if args.observation:
-		observation = Observation(disc)
 
-	state = State(disc)
-	reg = Regularization(state)
-	misfit = Misfit(state)
+	misfit = Misfit(args, disc)
+	state = misfit.state
+	obs = misfit.obs
+
 	import pdb
 	pdb.set_trace()
+	# create the Misfit object from args, disc Misfit(args,disc)
+	# From the misfit object, get the state object (misfit.state, describing state equtions) and observation object (misfit.obs, describing observation process)
+	
+	if args.observation:
+		# Use the state object to solve for state
+		# Use the observation object to save noisy obervations
+		observation = Observation(disc)
+		# obs.set_data(noise)
+
+	# state = State(disc) # TODO: state is a component of misfit (misfit.state)
+	# reg = Regularization(state) # TODO: Regularization(args,disc,state.ka)
+	
+	import pdb
+	pdb.set_trace()
+
+	# Combine Misfit and Regularization, solve optimization problem
+
+	# At optimal point, we do partial SVD, get the vectors
+
+	# With vector, we can define the problem we're interested in:
+	# Define a new optimization problem using prediction 
 		

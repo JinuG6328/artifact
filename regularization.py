@@ -24,3 +24,6 @@ class Regularization(object):
         self.reg = assemble(self.Alpha*(np.power(inner(grad(self.state.ka),grad(self.state.ka))+0.001,self.power))*dx)
         
 
+    def add_args(parser):
+        ''' Add options related to the mesh and discretization to the argument parser'''
+        parser.add_argument("-n", "--grid-n", type=int, default=32, help="number of cells per grid direction")
