@@ -9,19 +9,17 @@ from SVD import *
 import numpy as np
 
 class Regularization(object):
-
-    def __new__(self, state):
+    def __new__(self, disc, k):
         self.Alpha = None
         self.power = None
-        self.state = state
         self.reg = None
-        Regularization.__init__(self)
+        Regularization.__init__(self, disc, k)
         return self
         
-    def __init__(self):
+    def __init__(self, disc, k):
         self.Alpha = 0.1
         self.power = 1.0
-        self.reg = assemble(self.Alpha*(np.power(inner(grad(self.state.ka),grad(self.state.ka))+0.001,self.power))*dx)
+        self.reg = assemble(self.Alpha*(np.power(inner(grad(k),grad(k))+0.001,self.power))*dx)
         
 
     def add_args(parser):

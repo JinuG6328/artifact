@@ -36,6 +36,7 @@ class Observation(object):
         self.noise = None
         Observation.__init__(self,disc)
         return self
+        
     def __init__(self, disc):
         # self.W, self.bcs = get_state_space(self.mesh, self.boundaries)
         # self.w = get_state_variable(self.W)
@@ -54,7 +55,9 @@ class Observation(object):
         # solve(self.Amat, self.w.vector(), self.b)
         state_obs = State(disc, False)
 
-        if noise:
+        self.noise = True
+        
+        if self.noise:
             (self.u_n,self.p_n) = state_obs.w.split(deepcopy=True)
             self.size_u_n = int(self.u_n.vector().size()/2)
             self.size_p_n = self.p_n.vector().size()

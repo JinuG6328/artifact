@@ -8,8 +8,8 @@ from discretization import Discretization
 class Forward(Discretization):
 
     def forward_problem(self, ka):
-        self.u, self.p = TrialFunction(self.W)
-        self.v, self.q = TestFunction(self.W)
+        self.u, self.p = TrialFunctions(self.W)
+        self.v, self.q = TestFunctions(self.W)
         self.a = (inner( alpha(self.ka) * self.u, self.v) + (div(self.v)*self.p) + (div(self.u)*self.q))*dx 
         self.n1 = FacetNormal(mesh)
         self.myds = Measure('ds', domain=self.mesh, subdomain_data=self.boundaries)

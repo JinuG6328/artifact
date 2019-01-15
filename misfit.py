@@ -87,8 +87,8 @@ class Misfit(object):
         self.hello = compute_gradient(self.Jhat.functional, self.Jhat.controls[0])
 
         print("Misfit works")
-        # self.n_components = 3
-        # self.n_iter = 3
-        # self.U, self.Sigma, self.VT = randomized_svd(self.Jhat, n_components= self.n_components, n_iter= self.n_iter, size = (disc.n+1)*(disc.n+1))
+        self.n_components = 3
+        self.n_iter = 3
+        self.U, self.Sigma, self.VT = randomized_svd(self.Jhat, n_components= self.n_components, n_iter= self.n_iter, size = (disc.n+1)*(disc.n+1))
 
 
