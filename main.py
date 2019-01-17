@@ -25,33 +25,41 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--forward", action="store_true", help="solve the forward problem")
 parser.add_argument("-i", "--inverse", action="store_true", help="solve the inverse problem")
 parser.add_argument("-o", "--observation", action="store_true", help="make the observation")
-parser.add_argument("-a", "--add_noise", type=int, default=0, help="add noise with specific standard deviation")
 parser.add_argument("-r", "--regularization", type=int, default=0, help="power of regularization term ")
-
 
 if __name__ == "__main__":
 	
 	Discretization.add_args(parser)
-	# Misfit.add_args(parser)
-	# Regularization.add_args(parser)
+	Observation.add_args(parser)
 	args = parser.parse_args()
+	
 	disc = Discretization(args)
-
 	misfit = Misfit(args, disc)
 	state = misfit.state
 	obs = misfit.obs
 
-	import pdb
-	pdb.set_trace()
-	# create the Misfit object from args, disc Misfit(args,disc)
-	# From the misfit object, get the state object (misfit.state, describing state equtions) and observation object (misfit.obs, describing observation process)
-	
-	if args.observation:
-		# Use the state object to solve for state
-		# Use the observation object to save noisy obervations
-		observation = Observation(disc)
-		# obs.set_data(noise)
+	# RHS requires v in state. 
+	# If RHS is required, I could make it as a function inside the state.
 
+	if args.observation:
+        # Solve the state for some known RHS
+		K = get_coefficient_space(disc.mesh)
+		ka_true = get_initial_coefficients(K)
+		w_true = state.solve(ka=ka_true)
+		obs.set_observed(w_true)
+
+	Residual, Control = misfit.make_misfit(obs.observed)
+	Reg = Regularization(disc, state.ka)
+	Equation = Residual + Reg.reg
+	Jhat = misfit.misfit(Equation, Control)
+	
+	problem = MinimizationProblem(Jhat, bounds=(0.0, 1.0))
+	parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 100}
+	solver = IPOPTSolver(problem, parameters=parameters)
+	ka_opt = solver.solve()
+
+	xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Alpha ,power))
+	xdmf_filename.write(ka_opt)
 	# state = State(disc) # TODO: state is a component of misfit (misfit.state)
 	# reg = Regularization(state) # TODO: Regularization(args,disc,state.ka)
 	

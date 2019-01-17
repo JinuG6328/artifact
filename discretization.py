@@ -14,7 +14,6 @@ class Discretization(object):
         return self
     
     def add_args(parser):
-        ''' Add options related to the mesh and discretization to the argument parser'''
         parser.add_argument("-n", "--grid-n", type=int, default=32, help="number of cells per grid direction")
 
     def __init__(self, namespace):

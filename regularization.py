@@ -8,20 +8,13 @@ from state import *
 from SVD import *
 import numpy as np
 
-class Regularization(object):
-    def __new__(self, disc, k):
-        self.Alpha = None
-        self.power = None
-        self.reg = None
-        Regularization.__init__(self, disc, k)
-        return self
-        
+class Regularization(object):   
     def __init__(self, disc, k):
         self.Alpha = 0.1
         self.power = 1.0
         self.reg = assemble(self.Alpha*(np.power(inner(grad(k),grad(k))+0.001,self.power))*dx)
         
 
-    def add_args(parser):
-        ''' Add options related to the mesh and discretization to the argument parser'''
-        parser.add_argument("-n", "--grid-n", type=int, default=32, help="number of cells per grid direction")
+    # def add_args(parser):
+    #     ''' Add options related to the mesh and discretization to the argument parser'''
+    #     parser.add_argument("-n", "--grid-n", type=int, default=32, help="number of cells per grid direction")
