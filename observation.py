@@ -29,11 +29,13 @@ class Observation(object):
         # right now, for this example, this can just be a copy of w
         return w.copy()
 
-    def get_observed(self):
-        if self.observed is None:
-            # raise an error
-            pass
-        return self.observed
+    def get_observed(self, W):
+        #if self.observed is None:
+        self.observed = Function(W)
+        input_file = HDF5File(self.disc.mesh.mpi_comm(), "w.h5", "r")
+        input_file.read(self.observed, "Mixed")
+        input_file.close()
+        #return self.observed
 
     def set_observed(self,d_w,noise_u=None, noise_p = None, noise_d = None):
         """ store the observation that goes with the state d_w, adding appropriate noise """

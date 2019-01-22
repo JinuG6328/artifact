@@ -16,12 +16,20 @@ class Misfit(object):
     def make_misfit(self, d_w):
         self.controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (self.Alpha, self.power) )
         self.ka_viz = Function(self.state.A, name="ControlVisualisation")
+
+        self.ka = interpolate(self.state.V, self.state.A)
+
+        self.w = self.state.solve(ka=self.ka)
+        
         self.e = Expression("sin(pi * x[0]) * sin(pi * x[1])", degree = 1)
-        self.w = self.state.solve()
         self.f = interpolate(self.e,self.state.W.sub(1).collapse())
         self.J = assemble((0.5*inner(self.w[1]-d_w[1], self.f))*dx)
         self.J = self.J*self.J
-        self.m = Control(self.state.ka)
+
+        #self.J = assemble((0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])+0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
+        #self.J = assemble(0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])*dx )
+        
+        self.m = Control(self.ka)
         return self.J, self.m
 
     def misfit(self, J, m):
@@ -37,6 +45,8 @@ class Misfit(object):
         self.power = 1.
         self.Alpha = 0.0
         
+        self.ka = None
+
         self.obs = Observation(disc)
         self.state = State(disc)
 
