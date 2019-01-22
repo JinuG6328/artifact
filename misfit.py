@@ -20,8 +20,9 @@ class Misfit(object):
         self.ka = interpolate(self.state.V, self.state.A)
 
         self.w = self.state.solve(ka=self.ka)
-        
-        self.e = Expression("sin(pi * x[0]) * sin(pi * x[1])", degree = 1)
+        for i in range(1,3):
+            for j in range(1,3):
+                self.e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 1, i = i, j = j)
         self.f = interpolate(self.e,self.state.W.sub(1).collapse())
         self.J = assemble((0.5*inner(self.w[1]-d_w[1], self.f))*dx)
         self.J = self.J*self.J
