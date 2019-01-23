@@ -31,14 +31,16 @@ class Misfit(object):
         #self.J = assemble(0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])*dx )
         
         self.m = Control(self.ka)
-        return self.J, self.m
+        # import pdb
+        # pdb.set_trace()
+        return self.J, self.ka
 
     def misfit(self, J, m):
         self.Jhat = ReducedFunctional(J, m, eval_cb_post=self.eval_cb)
         self.hello = compute_gradient(self.Jhat.functional, self.Jhat.controls[0])
         return self.Jhat
 
-    def __init__(self, namespace, disc):
+    def __init__(self, namespace, disc, name = None):
 
         self.hello = None
         self.n_components = 3

@@ -14,7 +14,6 @@ class State(object):
 
         self.A = get_function_space(self.disc.mesh)
         self.V = Constant(0.5)
-        self.ka = interpolate(self.V, self.A)
             
         self.u, self.p = None, None
         self.v, self.q = None, None
@@ -35,7 +34,7 @@ class State(object):
     def solve(self, ka=None):
         self.u, self.p = TrialFunctions(self.W)
         self.v, self.q = TestFunctions(self.W)
-        self.a = (inner( self.ka * self.u, self.v) + (div(self.v)*self.p) + (div(self.u)*self.q))*dx 
+        self.a = (inner( ka * self.u, self.v) + (div(self.v)*self.p) + (div(self.u)*self.q))*dx 
 
         self.n1 = FacetNormal(self.disc.mesh)
         self.myds = Measure('ds', domain=self.disc.mesh, subdomain_data=self.disc.boundaries)
