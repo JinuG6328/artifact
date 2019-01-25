@@ -27,6 +27,7 @@ parser.add_argument("-f", "--forward", action="store_true", help="solve the forw
 parser.add_argument("-i", "--inverse", action="store_true", help="solve the inverse problem")
 parser.add_argument("-o", "--observation", action="store_true", help="make the observation")
 parser.add_argument("-r", "--regularization", type=int, default=0, help="power of regularization term ")
+parser.add_argument("-nc", "--number_of_components", type=int, default=10, help="number of components in Truncated SVD")
 
 if __name__ == "__main__":
 	
@@ -90,16 +91,21 @@ if __name__ == "__main__":
 
 	# With vector, we can define the problem we're interested in:
 
-    # TODO: original prediction that operates on full parameter space (could even be an instance of Misfit)	prediction = Misfit(args, disc, name="prediction")
+    # TODO: original prediction that operates on full parameter space (could even be an instance of Misfit)	
+	prediction = Misfit(args, disc, name="prediction")
 	Residual1, ka1 = prediction.make_misfit(obs.observed)
 	Reg1 = Regularization(disc, ka1)
 	Equation1 = Residual + Reg1.reg
 	Jhat1 = prediction.misfit(Equation1, Control(ka1))
 
+    # Projection
+    # Interpolate
+
     # TODO: get a pyadjoint block for applying U (Pyadjoint block for numpy array)
     # U_pa (for PyAdjoint)
     # pred_value = prediction.misfit(U_py.apply(m_enc))
-
+	import pdb
+	pdb.set_trace()
     # if we do this right, then we can get a ReducedFuntional for Control(m_enc)
 
     # TODO: define a encoded version of the prediction, that uses the full prediction on the expanded/decoded state
