@@ -14,7 +14,8 @@ class State(object):
 
         self.A = get_function_space(self.disc.mesh)
         self.V = Constant(0.5)
-            
+        self.ka = interpolate(self.V, self.A)
+
         self.u, self.p = None, None
         self.v, self.q = None, None
         self.a = None

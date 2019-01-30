@@ -13,11 +13,11 @@ class Misfit(object):
         self.ka_viz.assign(ka)
         self.controls << self.ka_viz
     
-    def make_misfit(self, d_w):
+    def make_misfit(self, d_w, ka):
         self.controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (self.Alpha, self.power) )
         self.ka_viz = Function(self.state.A, name="ControlVisualisation")
 
-        self.ka = interpolate(self.state.V, self.state.A)
+        self.ka = ka
 
         self.w = self.state.solve(ka=self.ka)
         for i in range(1,3):
@@ -30,10 +30,10 @@ class Misfit(object):
         #self.J = assemble((0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])+0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
         #self.J = assemble(0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])*dx )
         
-        self.m = Control(self.ka)
+        #self.m = Control(self.ka)
         # import pdb
         # pdb.set_trace()
-        return self.J, self.ka
+        return self.J
 
     def misfit(self, J, m):
         self.Jhat = ReducedFunctional(J, m, eval_cb_post=self.eval_cb)

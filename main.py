@@ -21,6 +21,7 @@ from state import State
 from misfit import Misfit
 from observation import Observation
 from regularization import Regularization
+from block_new import UpdatedBlock
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--forward", action="store_true", help="solve the forward problem")
@@ -58,12 +59,12 @@ if __name__ == "__main__":
 	# pdb.set_trace()
 	
 	#Residual, Control = misfit.make_misfit(obs.observed)
-	Residual, ka = misfit.make_misfit(obs.observed)
-	Reg = Regularization(disc, ka)
+	Residual = misfit.make_misfit(obs.observed, state.ka)
+	Reg = Regularization(disc, state.ka)
 	# Combine Misfit and Regularization, solve optimization problem
 	Equation = Residual + Reg.reg
 
-	Jhat = misfit.misfit(Equation, Control(ka))
+	Jhat = misfit.misfit(Equation, Control(state.ka))
     # misfit.misfit calls Control(ka)
 	
 	# problem = MinimizationProblem(Jhat, bounds=(0.0, 1.0))
@@ -90,22 +91,24 @@ if __name__ == "__main__":
 	VT = np.loadtxt('VT.txt')
 
 	# With vector, we can define the problem we're interested in:
-
+	import pdb
+	pdb.set_trace()
     # TODO: original prediction that operates on full parameter space (could even be an instance of Misfit)	
 	prediction = Misfit(args, disc, name="prediction")
-	Residual1, ka1 = prediction.make_misfit(obs.observed)
-	Reg1 = Regularization(disc, ka1)
-	Equation1 = Residual + Reg1.reg
-	Jhat1 = prediction.misfit(Equation1, Control(ka1))
-
+	# Residual1 = prediction.make_misfit(obs.observed,state.ka)
+	Residual2 = prediction.make_misfit(obs.observed,UpdatedBlock(state.ka,U))
+	#Reg1 = Regularization(disc, ka1)
+	# Equation1 = Residual1
+	Equation2 = Residual2
+	# Jhat1 = prediction.misfit(Equation1, Control(state.ka))
+	Jhat2 = prediction.misfit(Equation2, Control(UpdatedBlock(state.ka,U)))
     # Projection
     # Interpolate
 
     # TODO: get a pyadjoint block for applying U (Pyadjoint block for numpy array)
     # U_pa (for PyAdjoint)
     # pred_value = prediction.misfit(U_py.apply(m_enc))
-	import pdb
-	pdb.set_trace()
+	
     # if we do this right, then we can get a ReducedFuntional for Control(m_enc)
 
     # TODO: define a encoded version of the prediction, that uses the full prediction on the expanded/decoded state
