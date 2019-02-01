@@ -21,7 +21,11 @@ from state import State
 from misfit import Misfit
 from observation import Observation
 from regularization import Regularization
+
+from dot_to_function import dot_to_function
 from block_new import UpdatedBlock
+from pyadjoint.overloaded_function import overload_function
+dot_to_function = overload_function(dot_to_function, UpdatedBlock)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--forward", action="store_true", help="solve the forward problem")
@@ -96,12 +100,17 @@ if __name__ == "__main__":
     # TODO: original prediction that operates on full parameter space (could even be an instance of Misfit)	
 	prediction = Misfit(args, disc, name="prediction")
 	# Residual1 = prediction.make_misfit(obs.observed,state.ka)
-	Residual2 = prediction.make_misfit(obs.observed,UpdatedBlock(state.ka,U))
+	
+	#intermediate = U.T.dot(state.ka.vector()[:])
+	intermediate = np.random.rand(n_components)
+	ka_new = dot_to_function(state.A,U,intermediate)
+
+	Residual2 = prediction.make_misfit(obs.observed,ka_new)
 	#Reg1 = Regularization(disc, ka1)
 	# Equation1 = Residual1
 	Equation2 = Residual2
 	# Jhat1 = prediction.misfit(Equation1, Control(state.ka))
-	Jhat2 = prediction.misfit(Equation2, Control(UpdatedBlock(state.ka,U)))
+	Jhat2 = prediction.misfit(Equation2, Control(intermediate))
     # Projection
     # Interpolate
 
