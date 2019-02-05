@@ -28,7 +28,7 @@ from pyadjoint.overloaded_function import overload_function
 from pyadjoint.overloaded_type import overload_function
 #from pyadjoint.overloaded_function import overload_function
 dot_to_function = overload_function(dot_to_function, UpdatedBlock)
-listinput = overload_function(listinput,UpdatedBlock_arr)
+listinput = overload_function(list,UpdatedBlock_arr)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--forward", action="store_true", help="solve the forward problem")
