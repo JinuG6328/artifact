@@ -24,11 +24,12 @@ from regularization import Regularization
 
 from dot_to_function import dot_to_function
 from block_new import UpdatedBlock
+from block_array import UpdatedBlock_arr
 from pyadjoint.overloaded_function import overload_function
-from pyadjoint.overloaded_type import overload_function
+#from pyadjoint.overloaded_type import overload_function
 #from pyadjoint.overloaded_function import overload_function
 dot_to_function = overload_function(dot_to_function, UpdatedBlock)
-listinput = overload_function(list,UpdatedBlock_arr)
+#listinput = overload_function(list,UpdatedBlock_arr)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--forward", action="store_true", help="solve the forward problem")
