@@ -24,22 +24,17 @@ class UpdatedBlock(Block):
 
 	def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
 		adj_input = adj_inputs[0]
-		# self.umat.shape[1]
-		#y = self.umat.T
-		return self.y.inner(adj_input)
+		return self.y.dot(adj_input)
 
 	def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
-		hessian_input_0 = hessian_inputs[0]
-		hessian_input_1 = heesian_inputs[1]
+		hessian_input = hessian_inputs[0]
+		adj_input = adj_inputs[0]
 		#y = self.umat.T
-		y1 = self.y.inner(hessian_input_0)
-		y2 = self.y.T.dot(y1)
-		## Todo
-		## Two input?
-		y3 = y2.dot(hessian_input_1)
-		
-		return  self.y.T.dot(y1)
+		y1 = self.y.T.dot(adj_input)
+		y2 = hessian_input * np.matmul(self.y,self.y.T).dot(self.ar)
+				
+		return  y1 + y2
 		
 		"""This method must be overridden.
 
