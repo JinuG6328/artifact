@@ -60,95 +60,111 @@ class array(FloatingType, np.array):
     def adj_update_value(self, value):
         self.original_block_variable.checkpoint = value._ad_create_checkpoint()
 
-    ## from here
+    ## Question
+    ## numpy array scalar or vector
     @no_annotations
     def _ad_mul(self, other):
-        r = get_overloaded_class(np.array)(self.function_space())
-        np.copyto(r, self*other)
+        r = get_overloaded_class(np.array)
+        np.copyto(self*other, r)
         return r
 
     @no_annotations
     def _ad_add(self, other):
-        r = get_overloaded_class(backend.Function)(self.function_space())
-        backend.Function.assign(r, self+other)
+        r = get_overloaded_class(np.array)
+        np.copyto(self+other, r)
         return r
 
     def _ad_dot(self, other, options=None):
-        options = {} if options is None else options
-        riesz_representation = options.get("riesz_representation", "l2")
-        if riesz_representation == "l2":
-            return self.vector().inner(other.vector())
-        elif riesz_representation == "L2":
-            return backend.assemble(backend.inner(self, other) * backend.dx)
-        elif riesz_representation == "H1":
-            return backend.assemble((backend.inner(self, other) + backend.inner(backend.grad(self), backend.grad(other))) * backend.dx)
-        else:
-            raise NotImplementedError("Unknown Riesz representation %s" % riesz_representation)
+        
+        # options = {} if options is None else options
+        # riesz_representation = options.get("riesz_representation", "l2")
+        
+        return self.dot(other)
+
+        # if riesz_representation == "l2":
+        #     return self.vector().inner(other.vector())
+        # elif riesz_representation == "L2":
+        #     return backend.assemble(backend.inner(self, other) * backend.dx)
+        # elif riesz_representation == "H1":
+        #     return backend.assemble((backend.inner(self, other) + backend.inner(backend.grad(self), backend.grad(other))) * backend.dx)
+        # else:
+        #     raise NotImplementedError("Unknown Riesz representation %s" % riesz_representation)
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
-        range_begin, range_end = dst.vector().local_range()
-        m_a_local = src[offset + range_begin:offset + range_end]
-        dst.vector().set_local(m_a_local)
-        dst.vector().apply('insert')
-        offset += dst.vector().size()
+        range_begin, range_end = (0,len(dst))
+        # range_begin, range_end = dst.vector().local_range()
+        dst[offset + range_begin:offset + range_end] = src[offset + range_begin:offset + range_end]
+        
+        # dst.vector().set_local(m_a_local)
+        # dst.vector().apply('insert')
+        offset += len(dst)
         return dst, offset
 
     @staticmethod
     def _ad_to_list(m):
-        if not hasattr(m, "gather"):
-            m_v = m.vector()
-        else:
-            m_v = m
-        m_a = gather(m_v)
+        # if not hasattr(m, "gather"):
+        #     m_v = m.vector()
+        # else:
+        #     m_v = m
+        # m_a = gather(m_v)
 
-        return m_a.tolist()
+        return m
 
     def _ad_copy(self):
-        r = get_overloaded_class(backend.Function)(self.function_space())
-        backend.Function.assign(r, self)
+        r = get_overloaded_class(np.array)
+        r = self.copy()
         return r
 
-    def _ad_dim(self):
-        return self.function_space().dim()
+    # def _ad_dim(self):
+    #     return self.function_space().dim()
 
     def _ad_imul(self, other):
-        vec = self.vector()
+        # vec = self.vector()
         vec *= other
 
     def _ad_iadd(self, other):
-        vec = self.vector()
+        # vec = self.vector()
         # FIXME: PETSc complains when we add the same vector to itself.
         # So we make a copy.
-        vec += other.vector().copy()
+        vec += other#.vector().copy()
 
     def _reduce(self, r, r0):
+        ## What is this?
         vec = self.vector().get_local()
         for i in range(len(vec)):
             r0 = r(vec[i], r0)
         return r0
 
     def _applyUnary(self, f):
-        vec = self.vector()
-        npdata = vec.get_local()
-        for i in range(len(npdata)):
-            npdata[i] = f(npdata[i])
-        vec.set_local(npdata)
-        vec.apply("insert")
+
+        ## Similar to 
+        ## ad_assign_numpy
+        self = f
+        
+        # vec = self.vector()
+        # npdata = vec.get_local()
+        # for i in range(len(npdata)):
+        #     npdata[i] = f(npdata[i])
+        # vec.set_local(npdata)
+        # vec.apply("insert")
 
     def _applyBinary(self, f, y):
-        vec = self.vector()
-        npdata = vec.get_local()
-        npdatay = y.vector().get_local()
-        for i in range(len(npdata)):
-            npdata[i] = f(npdata[i], npdatay[i])
-        vec.set_local(npdata)
-        vec.apply("insert")
+        
+        ## I think we don't need it.
+        pass
+        # vec = self.vector()
+        # npdata = vec.get_local()
+        # npdatay = y.vector().get_local()
+        # for i in range(len(npdata)):
+        #     npdata[i] = f(npdata[i], npdatay[i])
+        # vec.set_local(npdata)
+        # vec.apply("insert")
 
     def __deepcopy__(self, memodict={}):
-        return self.copy(deepcopy=True)
+        return self.copy()
 
-
+## Lincom??
 def _extract_functions_from_lincom(lincom, functions=None):
     functions = functions or []
     if isinstance(lincom, backend.Function):
@@ -176,19 +192,19 @@ class AssignBlock(Block):
             self.expr = other
             self.lincom = True
 
-    def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
-        V = self.get_outputs()[0].output.function_space()
-        adj_input_func = compat.function_from_vector(V, adj_inputs[0])
+    # def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
+    #     V = self.get_outputs()[0].output.function_space()
+    #     adj_input_func = compat.function_from_vector(V, adj_inputs[0])
 
-        if not self.lincom:
-            return adj_input_func
-        # If what was assigned was not a lincom (only currently relevant in firedrake),
-        # then we need to replace the coefficients in self.expr with new values.
-        replace_map = {}
-        for dep in self.get_dependencies():
-            replace_map[dep.output] = dep.saved_output
-        expr = ufl.replace(self.expr, replace_map)
-        return expr, adj_input_func
+    #     if not self.lincom:
+    #         return adj_input_func
+    #     # If what was assigned was not a lincom (only currently relevant in firedrake),
+    #     # then we need to replace the coefficients in self.expr with new values.
+    #     replace_map = {}
+    #     for dep in self.get_dependencies():
+    #         replace_map[dep.output] = dep.saved_output
+    #     expr = ufl.replace(self.expr, replace_map)
+    #     return expr, adj_input_func
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         if not self.lincom:
@@ -199,59 +215,64 @@ class AssignBlock(Block):
                 adj_output.assign(prepared)
                 return adj_output.vector()
         else:
-            # Linear combination
-            expr, adj_input_func = prepared
-            adj_output = backend.Function(block_variable.output.function_space())
-            diff_expr = ufl.algorithms.expand_derivatives(
-                ufl.derivative(expr, block_variable.saved_output, adj_input_func)
-            )
-            adj_output.assign(diff_expr)
-            return adj_output.vector()
+            # # Linear combination
+            # expr, adj_input_func = prepared
+            # adj_output = backend.Function(block_variable.output.function_space())
+            # diff_expr = ufl.algorithms.expand_derivatives(
+            #     ufl.derivative(expr, block_variable.saved_output, adj_input_func)
+            # )
+            # adj_output.assign(diff_expr)
+            return adj_inputs[0]
 
-    def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
-        if not self.lincom:
-            return None
+    # def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
+    #     if not self.lincom:
+    #         return None
 
-        replace_map = {}
-        for dep in self.get_dependencies():
-            V = dep.output.function_space()
-            tlm_input = dep.tlm_value or backend.Function(V)
-            replace_map[dep.output] = tlm_input
-        expr = ufl.replace(self.expr, replace_map)
+    #     replace_map = {}
+    #     for dep in self.get_dependencies():
+    #         V = dep.output.function_space()
+    #         tlm_input = dep.tlm_value or backend.Function(V)
+    #         replace_map[dep.output] = tlm_input
+    #     expr = ufl.replace(self.expr, replace_map)
 
-        return expr
+    #     return expr
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        if not self.lincom:
-            return tlm_inputs[0]
+        # if not self.lincom:
+        #     return tlm_inputs[0]
 
-        expr = prepared
-        V = block_variable.output.function_space()
-        tlm_output = backend.Function(V)
-        backend.Function.assign(tlm_output, expr)
-        return tlm_output
+        # expr = prepared
+        # V = block_variable.output.function_space()
+        # tlm_output = backend.Function(V)
+        # backend.Function.assign(tlm_output, expr)
+        return tlm_inputs[0]
 
-    def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
-        return self.prepare_evaluate_adj(inputs, hessian_inputs, relevant_dependencies)
+    # def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
+    #     return self.prepare_evaluate_adj(inputs, hessian_inputs, relevant_dependencies)
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
         # Current implementation assumes lincom in hessian,
         # otherwise we need second-order derivatives here.
-        return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx, prepared)
+        # return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx, prepared)
+        return hessian_inputs[0]
 
-    def prepare_recompute_component(self, inputs, relevant_outputs):
-        if not self.lincom:
-            return None
+    # def prepare_recompute_component(self, inputs, relevant_outputs):
+    #     if not self.lincom:
+    #         return None
 
-        replace_map = {}
-        for dep in self.get_dependencies():
-            replace_map[dep.output] = dep.saved_output
-        return ufl.replace(self.expr, replace_map)
+    #     replace_map = {}
+    #     for dep in self.get_dependencies():
+    #         replace_map[dep.output] = dep.saved_output
+    #     return ufl.replace(self.expr, replace_map)
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        if not self.lincom:
-            prepared = inputs[0]
-        output = backend.Function(block_variable.output.function_space())
-        backend.Function.assign(output, prepared)
-        return output
+        
+        #return Constant._constant_from_values(block_variable.output, inputs[0])
+
+        return self
+        # if not self.lincom:
+        #     prepared = inputs[0]
+        # output = backend.Function(block_variable.output.function_space())
+        # backend.Function.assign(output, prepared)
+        # return output
