@@ -26,6 +26,7 @@ from dot_to_function import dot_to_function
 from block_new import UpdatedBlock
 from block_array import UpdatedBlock_arr
 from pyadjoint.overloaded_function import overload_function
+from numpy_block_var import array
 #from pyadjoint.overloaded_type import overload_function
 #from pyadjoint.overloaded_function import overload_function
 dot_to_function = overload_function(dot_to_function, UpdatedBlock)
@@ -114,7 +115,7 @@ if __name__ == "__main__":
 	# Equation1 = Residual1
 	Equation2 = Residual2
 	# Jhat1 = prediction.misfit(Equation1, Control(state.ka))
-	Jhat2 = prediction.misfit(Equation2, Control(intermediate))
+	Jhat2 = prediction.misfit(Equation2, array(intermediate))
     # Projection
     # Interpolate
 

@@ -20,6 +20,25 @@ class array(FloatingType, np.array):
                                     **kwargs)
         np.array.__init__(self, *args, **kwargs)
 
+    def assign(self, *args, **kwargs):
+        annotate_tape = kwargs.pop("annotate_tape", True)
+        if annotate_tape:
+            other = args[0]
+            if not isinstance(other, OverloadedType):
+                other = create_overloaded_object(other)
+
+            block = AssignBlock(self, other)
+            tape = get_working_tape()
+            tape.add_block(block)
+
+        # ret = backend.Constant.assign(self, *args, **kwargs)
+        ret = np.array.__init__(self, *args, **kwargs)
+
+        if annotate_tape:
+            block.add_output(self.create_block_variable())
+
+        return ret
+
     @classmethod
     def _ad_init_object(cls, obj):
         # r = np.zeros(obj.shape)
@@ -121,6 +140,7 @@ class array(FloatingType, np.array):
 
     def _ad_imul(self, other):
         # vec = self.vector()
+        # scalar or vector
         vec *= other
 
     def _ad_iadd(self, other):
