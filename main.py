@@ -26,7 +26,7 @@ from dot_to_function import dot_to_function
 from block_new import UpdatedBlock
 from block_array import UpdatedBlock_arr
 from pyadjoint.overloaded_function import overload_function
-from numpy_block_var import array
+from numpy_block_var import ndarray
 #from pyadjoint.overloaded_type import overload_function
 #from pyadjoint.overloaded_function import overload_function
 dot_to_function = overload_function(dot_to_function, UpdatedBlock)
@@ -100,8 +100,8 @@ if __name__ == "__main__":
 	VT = np.loadtxt('VT.txt')
 
 	# With vector, we can define the problem we're interested in:
-	import pdb
-	pdb.set_trace()
+	#import pdb
+	#pdb.set_trace()
     # TODO: original prediction that operates on full parameter space (could even be an instance of Misfit)	
 	prediction = Misfit(args, disc, name="prediction")
 	# Residual1 = prediction.make_misfit(obs.observed,state.ka)
@@ -114,9 +114,29 @@ if __name__ == "__main__":
 	#Reg1 = Regularization(disc, ka1)
 	# Equation1 = Residual1
 	Equation2 = Residual2
-	# Jhat1 = prediction.misfit(Equation1, Control(state.ka))
-	Jhat2 = prediction.misfit(Equation2, array(intermediate))
-    # Projection
+	# Jhat1 = prediction.misfit(Equation1, Control(state.ka
+	ai = ndarray(intermediate.shape,buffer=intermediate)
+	Jhat2 = prediction.misfit(Equation2, Control(ai))
+	
+
+
+
+	lb = 0.0
+	ub = 1.0
+	problem1 = MinimizationProblem(Jhat2, bounds=(lb, ub))
+
+	parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 100}
+	import pdb
+	pdb.set_trace()
+	solver1 = IPOPTSolver(problem1, parameters=parameters)
+	ka_opt1 = solver1.solve()
+
+	xdmf_filename = XDMFFile("reduced_solution.xdmf")
+	xdmf_filename.write(ka_opt1)
+
+	import pdb
+	pdb.set_trace()
+# Projection
     # Interpolate
 
     # TODO: get a pyadjoint block for applying U (Pyadjoint block for numpy array)

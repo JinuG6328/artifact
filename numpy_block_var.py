@@ -7,9 +7,10 @@ from pyadjoint.overloaded_type import (OverloadedType, FloatingType,
 import numpy as np
 
 @register_overloaded_type
-class array(FloatingType, np.array):
+class ndarray(FloatingType, np.ndarray):
     def __init__(self, *args, **kwargs):
-        super(array, self).__init__(*args,
+        
+        super(ndarray, self).__init__(*args,
                                     block_class=kwargs.pop("block_class", None),
                                     _ad_floating_active=kwargs.pop("_ad_floating_active", False),
                                     _ad_args=kwargs.pop("_ad_args", None),
@@ -18,7 +19,8 @@ class array(FloatingType, np.array):
                                     _ad_outputs=kwargs.pop("_ad_outputs", None),
                                     annotate=kwargs.pop("annotate", True),
                                     **kwargs)
-        np.array.__init__(self, *args, **kwargs)
+        # numpy doc claims array is initialized after __new__?
+        #np.ndarray.__init__(self, *args, **kwargs)
 
     def assign(self, *args, **kwargs):
         annotate_tape = kwargs.pop("annotate_tape", True)
@@ -32,12 +34,18 @@ class array(FloatingType, np.array):
             tape.add_block(block)
 
         # ret = backend.Constant.assign(self, *args, **kwargs)
-        ret = np.array.__init__(self, *args, **kwargs)
+        ret = np.ndarray.__init__(self, *args, **kwargs)
 
         if annotate_tape:
             block.add_output(self.create_block_variable())
 
         return ret
+
+    def get_derivative(self, options={}):
+        return ndarray(self.adj_value.shape,buffer=self.adj_value)
+
+    def data(self):
+        return self.block_output.checkpoint
 
     @classmethod
     def _ad_init_object(cls, obj):
@@ -83,13 +91,13 @@ class array(FloatingType, np.array):
     ## numpy array scalar or vector
     @no_annotations
     def _ad_mul(self, other):
-        r = get_overloaded_class(np.array)
+        r = get_overloaded_class(np.ndarray)
         np.copyto(self*other, r)
         return r
 
     @no_annotations
     def _ad_add(self, other):
-        r = get_overloaded_class(np.array)
+        r = get_overloaded_class(np.ndarray)
         np.copyto(self+other, r)
         return r
 
@@ -127,11 +135,10 @@ class array(FloatingType, np.array):
         # else:
         #     m_v = m
         # m_a = gather(m_v)
-
         return m
 
     def _ad_copy(self):
-        r = get_overloaded_class(np.array)
+        r = get_overloaded_class(np.ndarray)
         r = self.copy()
         return r
 
