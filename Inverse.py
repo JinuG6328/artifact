@@ -9,7 +9,7 @@ from scipy import linalg, sparse
 from sklearn.utils import *
 from sklearn.utils.extmath import svd_flip
 from SVD import safe_sparse_dot, randomized_svd, randomized_range_finder
-from Initialize import *
+from initialize import *
 
 def forward_problem(ka):
 	(u,p) = TrialFunctions(W)
