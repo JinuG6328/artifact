@@ -15,8 +15,6 @@ class UpdatedBlock(Block):
         self.umat = mat
         self.ar = array
         self.y = self.umat.T
-        import pdb
-        pdb.set_trace()
         if isinstance(array, OverloadedType):
             self.add_dependency(array.block_variable, no_duplicates=True)
         self._V = func
@@ -27,8 +25,6 @@ class UpdatedBlock(Block):
         return "UpdatedBlock"
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        import pdb
-        pdb.set_trace()
         return backend_dot_to_function(self._V,self._mat,inputs[0])
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):

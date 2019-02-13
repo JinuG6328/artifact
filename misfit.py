@@ -10,8 +10,9 @@ from SVD import *
 class Misfit(object):
 
     def eval_cb(self, j, ka):
-        self.ka_viz.assign(ka)
-        self.controls << self.ka_viz
+        if isinstance(ka, Function):
+            self.ka_viz.assign(ka)
+            self.controls << self.ka_viz
     
     def make_misfit(self, d_w, ka):
         self.controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (self.Alpha, self.power) )

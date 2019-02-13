@@ -118,7 +118,7 @@ if __name__ == "__main__":
     # Jhat1 = prediction.misfit(Equation1, Control(state.ka
     Jhat2 = prediction.misfit(Equation2, Control(ai))
 
-    r_temp = Jhat2(ai)
+    #r_temp = Jhat2(ai)
     
 
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     ub = 1.0
     problem1 = MinimizationProblem(Jhat2, bounds=(lb, ub))
 
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 100}
+    parameters = {"acceptable_tol": 1.0e-2, "maximum_iterations": 10}
     import pdb
     pdb.set_trace()
     solver1 = IPOPTSolver(problem1, parameters=parameters)
