@@ -36,7 +36,7 @@ class Misfit(object):
         # pdb.set_trace()
         return self.J
 
-    def misfit(self, J, m):
+    def misfit_op(self, J, m):
         self.Jhat = ReducedFunctional(J, m, eval_cb_post=self.eval_cb)
         self.hello = compute_gradient(self.Jhat.functional, self.Jhat.controls[0])
         return self.Jhat
