@@ -20,12 +20,11 @@ class Ndarray(FloatingType, np.ndarray):
                                     _ad_outputs=kwargs.pop("_ad_outputs", None),
                                     annotate=kwargs.pop("annotate", True),
                                     **kwargs)
-        self.original_block_variable = self.create_block_variable()
         # numpy doc claims array is initialized after __new__?
 
-    def create_block_variable(self):
-        self.block_variable = BlockVariable(self)
-        return self.block_variable
+    # def create_block_variable(self):
+    #     self.block_variable = BlockVariable(self)
+    #     return self.block_variable
 
     # def assign(self, other, *args, **kwargs):
     #     annotate_tape = kwargs.pop("annotate_tape", True)
@@ -59,17 +58,26 @@ class Ndarray(FloatingType, np.ndarray):
     # def data(self):
     #     return self.block_output.checkpoint
 
+    def copy_d(self, values = False):
+        # import pdb
+        # pdb.set_trace()
+        r = np.ndarray(self.shape, buffer = self)
+        r_numpy_block = create_overloaded_object(r)
+        return r_numpy_block
+
     @classmethod
     def _ad_init_object(cls, obj):
         # r = np.zeros(obj.shape)
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
 
         r = obj.copy()
         return cls(r.shape, buffer=r)
 
     @no_annotations
     def _ad_convert_type(self, value, options=None):
+        # import pdb
+        # pdb.set_trace()
         return Ndarray(value.shape, buffer=value)
 
     def _ad_create_checkpoint(self):
@@ -81,7 +89,7 @@ class Ndarray(FloatingType, np.ndarray):
             
             # TODO: what is the numpy copy capabilities we need? 
             # copy and copyto
-            return self
+            return self.copy_d()
             # return self.copy()
 
 
@@ -140,8 +148,8 @@ class Ndarray(FloatingType, np.ndarray):
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
         #range_begin, range_end = (0, len(dst))
         dst[:] = src[offset : offset + len(dst)]
         #dst = Ndarray(dst.shape,buffer=m_a_local)
@@ -155,6 +163,9 @@ class Ndarray(FloatingType, np.ndarray):
 
     @staticmethod
     def _ad_to_list(m):
+        # print(type(m))
+        # import pdb
+        # pdb.set_trace()
         # if not hasattr(m, "gather"):
         #     m_v = m.vector()
         # else:
@@ -162,14 +173,10 @@ class Ndarray(FloatingType, np.ndarray):
         # m_a = gather(m_v)
         return m.tolist()
 
-    def _ad_copy(self):
-        import pdb
-        pdb.set_trace()
-        # self.__init__()
-        #return self
-        
-        r = copy.deepcopy(self)
-
+    def _ad_copy(self):      
+        r = self.copy_d()
+        # import pdb
+        # pdb.set_trace()
         # r = Ndarray(self.shape)
         # r[:] = self.tolist()
         # r.adj_value = self.adj_value
@@ -179,8 +186,8 @@ class Ndarray(FloatingType, np.ndarray):
         return r
 
     def _ad_dim(self):
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
         return self.shape
 
     # def _ad_imul(self, other):

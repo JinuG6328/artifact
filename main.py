@@ -121,8 +121,8 @@ if __name__ == "__main__":
         # ai = ndarray(intermediate.shape,)
         # ai.assign(intermediate)
 
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
     
 
     with tape.name_scope("putting_into_defined_function"):
@@ -138,12 +138,9 @@ if __name__ == "__main__":
     with tape.name_scope("Make_reduced_functional"):
         Jhat2 = prediction.misfit_op(objective2, Control(ai))
 
-    
-    lb = 0.0
-    ub = 1.0
     with tape.name_scope("Minimization_problem_setting"):
-        problem1 = MinimizationProblem(Jhat2, bounds=(lb, ub))
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 100}
+        problem1 = MinimizationProblem(Jhat2)
+        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
     # import pdb
     # pdb.set_trace()
     with tape.name_scope("Defining_minimization"):
@@ -151,14 +148,17 @@ if __name__ == "__main__":
         ka_opt1 = solver1.solve()     
 
     # tape.visualise()
-    
-    # import pdb
-    # pdb.set_trace()
 
     # Save the result using existing program tool.
     ka_opt2 = ka_opt.copy(deepcopy = True)
     ka_opt2.vector()[:] = U.dot(ka_opt1)
 
+    plot(ka_opt2)
+    plt.figure()
+    plot(ka_opt)
+    
+    
+    plt.show()
     import pdb
     pdb.set_trace()
 
