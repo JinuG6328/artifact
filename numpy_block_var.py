@@ -4,13 +4,14 @@ from pyadjoint.block import Block
 from pyadjoint.overloaded_type import (OverloadedType, FloatingType,
                                        create_overloaded_object, register_overloaded_type,
                                        get_overloaded_class)
+from pyadjoint.block_variable import BlockVariable
 import numpy as np
+import copy
 
 @register_overloaded_type
-class ndarray(FloatingType, np.ndarray):
-    def __init__(self, *args, **kwargs):
-        
-        super(ndarray, self).__init__(*args,
+class Ndarray(FloatingType, np.ndarray):
+    def __init__(self, *args, **kwargs):        
+        super(Ndarray, self).__init__(*args, 
                                     block_class=kwargs.pop("block_class", None),
                                     _ad_floating_active=kwargs.pop("_ad_floating_active", False),
                                     _ad_args=kwargs.pop("_ad_args", None),
@@ -19,29 +20,38 @@ class ndarray(FloatingType, np.ndarray):
                                     _ad_outputs=kwargs.pop("_ad_outputs", None),
                                     annotate=kwargs.pop("annotate", True),
                                     **kwargs)
+        self.original_block_variable = self.create_block_variable()
         # numpy doc claims array is initialized after __new__?
-        #np.ndarray.__init__(self, *args, **kwargs)
 
-    def assign(self, other, *args, **kwargs):
-        annotate_tape = kwargs.pop("annotate_tape", True)
-        import pdb
-        pdb.set_trace()
-        if annotate_tape:
-            other = args[0]
-            if not isinstance(other, OverloadedType):
-                other = create_overloaded_object(other)
+    def create_block_variable(self):
+        self.block_variable = BlockVariable(self)
+        return self.block_variable
 
-            block = AssignBlock(self, other)
-            tape = get_working_tape()
-            tape.add_block(block)
+    # def assign(self, other, *args, **kwargs):
+    #     annotate_tape = kwargs.pop("annotate_tape", True)
+    #     # import pdb
+    #     # pdb.set_trace()
+    #     if annotate_tape:
+    #         #other = args[0]
+    #         if not isinstance(other, OverloadedType):
+    #             other = create_overloaded_object(other)
 
-        # ret = backend.Constant.assign(self, *args, **kwargs)
-        ret = ndarray(args.shape,buffer=args)
+    #         block = AssignBlock(self, other)
+    #         tape = get_working_tape()
+    #         tape.add_block(block)
 
-        if annotate_tape:
-            block.add_output(self.create_block_variable())
+    #     # ret = backend.Constant.assign(self, *args, **kwargs)
+    #     #ret = ndarray(other.shape,buffer=other)
+    #     import pdb
+    #     pdb.set_trace()
+    #     with stop_annotating():
+    #         ret = super(Ndarray, self).assign(other, *args, **kwargs)
+    #     # ret =
 
-        return ret
+    #     if annotate_tape:
+    #         block.add_output(self.create_block_variable())
+
+    #     return ret
 
     # def get_derivative(self, options={}):
     #     return ndarray(self.adj_value.shape,buffer=self.adj_value)
@@ -52,17 +62,15 @@ class ndarray(FloatingType, np.ndarray):
     @classmethod
     def _ad_init_object(cls, obj):
         # r = np.zeros(obj.shape)
+        import pdb
+        pdb.set_trace()
 
         r = obj.copy()
-        return cls(r.shape,buffer=r)
-        
-        # r = cls(obj.function_space())
-        # r.vector()[:] = obj.vector()
-        # return r
+        return cls(r.shape, buffer=r)
 
     @no_annotations
     def _ad_convert_type(self, value, options=None):
-        return ndarray(value.shape,buffer=value)
+        return Ndarray(value.shape, buffer=value)
 
     def _ad_create_checkpoint(self):
         # import pdb
@@ -93,26 +101,32 @@ class ndarray(FloatingType, np.ndarray):
         # return ndarray(checkpoint.shape,buffer=checkpoint)
 
     @no_annotations
-    def adj_update_value(self, value):    
+    def adj_update_value(self, value): 
+        # import pdb
+        # pdb.set_trace()
         self.original_block_variable.checkpoint = value._ad_create_checkpoint()
 
     ## Question
     ## numpy array scalar or vector
     @no_annotations
     def _ad_mul(self, other):
+        import pdb
+        pdb.set_trace()
         return self*other
         #return ndarray(self.shape, buffur=(self*other))
 
     @no_annotations
     def _ad_add(self, other):
+        import pdb
+        pdb.set_trace()
         return self+other
         #return ndarray(self.shape, buffur=(self+other))
 
     def _ad_dot(self, other, options=None):
-        
+        import pdb
+        pdb.set_trace()
         # options = {} if options is None else options
         # riesz_representation = options.get("riesz_representation", "l2")
-        
         return self.dot(other)
 
         # if riesz_representation == "l2":
@@ -125,12 +139,12 @@ class ndarray(FloatingType, np.ndarray):
         #     raise NotImplementedError("Unknown Riesz representation %s" % riesz_representation)
 
     @staticmethod
-    ## Question
     def _ad_assign_numpy(dst, src, offset):
-        
-        range_begin, range_end = (0, len(dst))
-        m_a_local = src[offset + range_begin : offset + range_end]
-        dst = ndarray(dst.shape,buffer=m_a_local)
+        import pdb
+        pdb.set_trace()
+        #range_begin, range_end = (0, len(dst))
+        dst[:] = src[offset : offset + len(dst)]
+        #dst = Ndarray(dst.shape,buffer=m_a_local)
         # # range_begin, range_end = dst.vector().local_range()
         # dst[offset + range_begin:offset + range_end] = src[offset + range_begin:offset + range_end]
         
@@ -149,10 +163,24 @@ class ndarray(FloatingType, np.ndarray):
         return m.tolist()
 
     def _ad_copy(self):
-        return self
-        # return ndarray(self.shape, buffer = self.copy())
+        import pdb
+        pdb.set_trace()
+        # self.__init__()
+        #return self
+        
+        r = copy.deepcopy(self)
+
+        # r = Ndarray(self.shape)
+        # r[:] = self.tolist()
+        # r.adj_value = self.adj_value
+
+        # backend.Function.assign(r, self)
+        # r = ndarray(self.shape, buffer = self.tolist())
+        return r
 
     def _ad_dim(self):
+        import pdb
+        pdb.set_trace()
         return self.shape
 
     # def _ad_imul(self, other):

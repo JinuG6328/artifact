@@ -26,14 +26,14 @@ from regularization import Regularization
 from block_new import UpdatedBlock
 from block_array import UpdatedBlock_arr
 from pyadjoint.overloaded_function import overload_function
-from numpy_block_var import ndarray
+from numpy_block_var import Ndarray
 
 ## We already defined our customized function dot_to_function.
 ## Using this function, we could successfuly use adjoint equation to estimate the parameters. 
 from dot_to_function import dot_to_function
 dot_to_function = overload_function(dot_to_function, UpdatedBlock)
 
-## We can change the setting on the command line.
+## We can change the setting on the command line
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--forward", action="store_true", help="solve the forward problem")
 parser.add_argument("-i", "--inverse", action="store_true", help="solve the inverse problem")
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     ## Sovling minimization problem and save the result ##
     with tape.name_scope("minimization_first_part"):
         problem = MinimizationProblem(Jhat, bounds=(0.0, 1.0))
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 5}
+        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
         solver = IPOPTSolver(problem, parameters=parameters)
         ka_opt = solver.solve()
 
@@ -117,8 +117,14 @@ if __name__ == "__main__":
         intermediate = np.random.rand(n_components)
 
     with tape.name_scope("Making_taped_array"):
-        ai = ndarray(intermediate.shape,buffer=intermediate)
+        ai = Ndarray(intermediate.shape, buffer=intermediate)
+        # ai = ndarray(intermediate.shape,)
+        # ai.assign(intermediate)
+
+    import pdb
+    pdb.set_trace()
     
+
     with tape.name_scope("putting_into_defined_function"):
         ka_new = dot_to_function(state.A,U,ai)
 
@@ -137,22 +143,30 @@ if __name__ == "__main__":
     ub = 1.0
     with tape.name_scope("Minimization_problem_setting"):
         problem1 = MinimizationProblem(Jhat2, bounds=(lb, ub))
-        parameters = {"acceptable_tol": 1.0e-2, "maximum_iterations": 5}
+        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 100}
     # import pdb
     # pdb.set_trace()
     with tape.name_scope("Defining_minimization"):
         solver1 = IPOPTSolver(problem1, parameters=parameters)
-    
-    with tape.name_scope("Solving"):
-        ka_opt1 = solver1.solve()
+        ka_opt1 = solver1.solve()     
 
-    tape.visualise()
+    # tape.visualise()
     
-    xdmf_filename = XDMFFile("reduced_solution.xdmf")
-    xdmf_filename.write(ka_opt1)
+    # import pdb
+    # pdb.set_trace()
+
+    # Save the result using existing program tool.
+    ka_opt2 = ka_opt.copy(deepcopy = True)
+    ka_opt2.vector()[:] = U.dot(ka_opt1)
 
     import pdb
     pdb.set_trace()
+
+    # xdmf_filename = XDMFFile("reduced_solution.xdmf")
+    # xdmf_filename.write(ka_opt2)
+
+    # import pdb
+    # pdb.set_trace()
 # Projection
     # Interpolate
 
