@@ -99,53 +99,42 @@ if __name__ == "__main__":
     n_iter = 100   
     # U, Sigma, VT = randomized_svd1(Jhat, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
     
+    ## Saving the U, Sigma, V^T
     # np.savetxt('U.txt', U)
     # np.savetxt('Sigma.txt', Sigma)
     # np.savetxt('VT.txt', VT)
     
+    ## Loading the U, Sigma, V^T
     U = np.loadtxt('U.txt')
     Sigma = np.loadtxt('Sigma.txt')
     VT = np.loadtxt('VT.txt')
 
-    # With vector, we can define the problem we're interested in:
-    # TODO: original prediction that operates on full parameter space (could even be an instance of Misfit)    
-    with tape.name_scope("Define_prediction"):
-        prediction = Misfit(args, disc, name="prediction")
-        # Residual1 = prediction.make_misfit(obs.observed,state.ka)
-    
-    with tape.name_scope("Make_first_guess"):    
-        intermediate = np.random.rand(n_components)
-
-    with tape.name_scope("Making_taped_array"):
-        ai = Ndarray(intermediate.shape, buffer=intermediate)
-        # ai = ndarray(intermediate.shape,)
-        # ai.assign(intermediate)
-
-    # import pdb
-    # pdb.set_trace()
-    
-
+    ## With vector, we can define the problem we're interested in:
+    prediction = Misfit(args, disc, name="prediction")
+    intermediate = np.random.rand(n_components)
+    ai = Ndarray(intermediate.shape, buffer=intermediate)
+        
     with tape.name_scope("putting_into_defined_function"):
         ka_new = dot_to_function(state.A,U,ai)
 
     with tape.name_scope("Making_residual"):
         residual2 = prediction.make_misfit(obs.observed,ka_new)
-    #Reg1 = Regularization(disc, ka1)
-    # Equation1 = Residual1
-    with tape.name_scope("Defining_objective"):
-        objective2 = residual2
-    # Jhat1 = prediction.misfit(Equation1, Control(state.ka))
-    with tape.name_scope("Make_reduced_functional"):
-        Jhat2 = prediction.misfit_op(objective2, Control(ai))
 
-    with tape.name_scope("Minimization_problem_setting"):
-        problem1 = MinimizationProblem(Jhat2)
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
-    # import pdb
-    # pdb.set_trace()
-    with tape.name_scope("Defining_minimization"):
-        solver1 = IPOPTSolver(problem1, parameters=parameters)
-        ka_opt1 = solver1.solve()     
+    objective2 = residual2
+    Jhat2 = prediction.misfit_op(objective2, Control(ai))
+
+    problem1 = MinimizationProblem(Jhat2)
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    solver1 = IPOPTSolver(problem1, parameters=parameters)
+    ka_opt1 = solver1.solve()     
+
+    ## Taylor test
+    h = Constant(0.00001)
+    conv_rate = taylor_test(Jhat, ai, h)
+    ## https://bitbucket.org/tisaac/gtcse8803iuqsp19/src/master/notebooks/optimization/optimization-pyadjoint.ipynb?viewer=nbviewer
+    
+    ## Prediction
+    # ai + Sigma[0]*V^T*error <= epsilon
 
     # tape.visualise()
 
