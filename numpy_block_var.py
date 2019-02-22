@@ -92,7 +92,6 @@ class Ndarray(FloatingType, np.ndarray):
             return self.copy_d()
             # return self.copy()
 
-
         dep = self.block.get_dependencies()[0]
         # import pdb
         # pdb.set_trace()
@@ -118,21 +117,29 @@ class Ndarray(FloatingType, np.ndarray):
     ## numpy array scalar or vector
     @no_annotations
     def _ad_mul(self, other):
-        import pdb
-        pdb.set_trace()
-        return self*other
+        # import pdb
+        # pdb.set_trace()
+        r = np.ndarray(self.shape, buffer = self)
+        r *= other
+        r_numpy_block = create_overloaded_object(r)
+        return r_numpy_block
+        #return self*other
         #return ndarray(self.shape, buffur=(self*other))
 
     @no_annotations
     def _ad_add(self, other):
-        import pdb
-        pdb.set_trace()
-        return self+other
+        # import pdb
+        # pdb.set_trace()
+        r = np.ndarray(self.shape, buffer = self)
+        r += other
+        r_numpy_block = create_overloaded_object(r)
+        return r_numpy_block
+        #return self+other
         #return ndarray(self.shape, buffur=(self+other))
 
     def _ad_dot(self, other, options=None):
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
         # options = {} if options is None else options
         # riesz_representation = options.get("riesz_representation", "l2")
         return self.dot(other)

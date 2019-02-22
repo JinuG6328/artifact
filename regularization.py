@@ -1,4 +1,3 @@
-
 from fenics import *
 from fenics_adjoint import *
 

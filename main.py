@@ -129,8 +129,9 @@ if __name__ == "__main__":
     ka_opt1 = solver1.solve()     
 
     ## Taylor test
-    h = Constant(0.00001)
-    conv_rate = taylor_test(Jhat, ai, h)
+    h_input = np.random.rand(n_components)
+    h = Ndarray(h_input.shape, buffer=h_input)
+    conv_rate = taylor_test(Jhat2, ai, h)
     ## https://bitbucket.org/tisaac/gtcse8803iuqsp19/src/master/notebooks/optimization/optimization-pyadjoint.ipynb?viewer=nbviewer
     
     ## Prediction
