@@ -117,19 +117,36 @@ if __name__ == "__main__":
     with tape.name_scope("putting_into_defined_function"):
         ka_new = dot_to_function(state.A,U,ai)
 
+    ka_new_norm = assemble(dot(ka_new,ka_new)*dx)
+    intermediate1 = np.random.rand(n_components)*0.001
+    ai2 = Ndarray(intermediate1.shape, buffer=intermediate1)
+    ka_new1 = dot_to_function(state.A,U,ai2)
+    red_norm = ReducedFunctional(ka_new_norm, Control(ka_new))
+    conv_rate1 = taylor_test(red_norm, ka_new, ka_new1)
+
+    intermediate2 = np.random.rand(n_components)*0.001
+    ai3 = Ndarray(intermediate2.shape, buffer=intermediate2)
+    red_norm1 = ReducedFunctional(ka_new_norm, Control(ai))
+    conv_rate2 = taylor_test(red_norm1, ai, ai3)
+
     with tape.name_scope("Making_residual"):
         residual2 = prediction.make_misfit(obs.observed,ka_new)
+
+    import pdb
+    pdb.set_trace()
 
     objective2 = residual2
     Jhat2 = prediction.misfit_op(objective2, Control(ai))
 
     problem1 = MinimizationProblem(Jhat2)
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    parameters = {"acceptable_tol": 1.0e-5, "maximum_iterations": 50}
     solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     
 
+
     ## Taylor test
     h_input = np.random.rand(n_components)
+    h_input *= 0.000001
     h = Ndarray(h_input.shape, buffer=h_input)
     conv_rate = taylor_test(Jhat2, ai, h)
     ## https://bitbucket.org/tisaac/gtcse8803iuqsp19/src/master/notebooks/optimization/optimization-pyadjoint.ipynb?viewer=nbviewer
@@ -137,7 +154,7 @@ if __name__ == "__main__":
     ## Prediction
     # ai + Sigma[0]*V^T*error <= epsilon
 
-    # tape.visualise()
+    tape.visualise()
 
     # Save the result using existing program tool.
     ka_opt2 = ka_opt.copy(deepcopy = True)
@@ -157,7 +174,7 @@ if __name__ == "__main__":
 
     # import pdb
     # pdb.set_trace()
-# Projection
+    # Projection
     # Interpolate
 
     # TODO: get a pyadjoint block for applying U (Pyadjoint block for numpy array)
