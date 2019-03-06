@@ -8,7 +8,7 @@ from SVD import *
 import numpy as np
 
 class Regularization(object):   
-    def __init__(self, disc, k):
+    def __init__(self, k):
         self.Alpha = 0.1
         self.power = 1.0
         self.reg = assemble(self.Alpha*(np.power(inner(grad(k),grad(k))+0.001,self.power))*dx)

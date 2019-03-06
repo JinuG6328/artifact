@@ -33,6 +33,9 @@ from numpy_block_var import Ndarray
 from dot_to_function import dot_to_function
 dot_to_function = overload_function(dot_to_function, UpdatedBlock)
 
+# import pdb
+# pdb.set_trace()
+
 ## We can change the setting on the command line
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--forward", action="store_true", help="solve the forward problem")
@@ -75,7 +78,7 @@ if __name__ == "__main__":
      
     ## Next we dfined residual and regularization
     residual = misfit.make_misfit(obs.observed, state.ka)
-    reg = Regularization(disc, state.ka)
+    reg = Regularization(state.ka)
     
     ## Next we combined misfit and regularization to define reduced functional objective
     objective = residual + reg.reg
@@ -106,6 +109,9 @@ if __name__ == "__main__":
     
     ## Loading the U, Sigma, V^T
     U = np.loadtxt('U.txt')
+    # n_components = ka_opt.vector().size()
+    # U = np.eye(n_components)
+    #U = U[:,0:n_components]
     Sigma = np.loadtxt('Sigma.txt')
     VT = np.loadtxt('VT.txt')
 
@@ -116,38 +122,54 @@ if __name__ == "__main__":
         
     with tape.name_scope("putting_into_defined_function"):
         ka_new = dot_to_function(state.A,U,ai)
+        ka_new_norm = assemble(dot(ka_new,ka_new)*dx)
+        # self_vec = Function(state.A)
+        # self_vec.vector()[:] = intermediate
+        # self_norm = assemble(dot(self_vec,self_vec)*dx)
+        # print(ka_new_norm,self_norm)
 
-    ka_new_norm = assemble(dot(ka_new,ka_new)*dx)
-    intermediate1 = np.random.rand(n_components)*0.001
-    ai2 = Ndarray(intermediate1.shape, buffer=intermediate1)
-    ka_new1 = dot_to_function(state.A,U,ai2)
-    red_norm = ReducedFunctional(ka_new_norm, Control(ka_new))
-    conv_rate1 = taylor_test(red_norm, ka_new, ka_new1)
+    
+    # intermediate1 = np.random.rand(n_components)
+    # ai2 = Ndarray(intermediate1.shape, buffer=intermediate1)
+    # ka_new1 = dot_to_function(state.A,U,ai2)
+    # red_norm = ReducedFunctional(ka_new_norm, Control(ka_new))
+    # conv_rate1 = taylor_test(red_norm, ka_new, ka_new1)
 
-    intermediate2 = np.random.rand(n_components)*0.001
+    intermediate2 = np.random.rand(n_components)
     ai3 = Ndarray(intermediate2.shape, buffer=intermediate2)
     red_norm1 = ReducedFunctional(ka_new_norm, Control(ai))
+    print("ai3")
     conv_rate2 = taylor_test(red_norm1, ai, ai3)
+
+    
+    # ai_norm = assemble((ai.dot(ai))*dx)
+    # intermediate3 = np.random.rand(n_components)*0.001
+    # ai4 = Ndarray(intermediate3.shape, buffer=intermediate3)
+    # red_norm1 = ReducedFunctional(ai_norm, Control(ai))
+    # conv_rate2 = taylor_test(red_norm1, ai, ai4)
 
     with tape.name_scope("Making_residual"):
         residual2 = prediction.make_misfit(obs.observed,ka_new)
 
+
     import pdb
     pdb.set_trace()
 
-    objective2 = residual2
+    reg1 = Regularization(ka_new)
+
+    objective2 = residual2 + reg1.reg
     Jhat2 = prediction.misfit_op(objective2, Control(ai))
 
     problem1 = MinimizationProblem(Jhat2)
-    parameters = {"acceptable_tol": 1.0e-5, "maximum_iterations": 50}
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
     solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     
 
 
     ## Taylor test
     h_input = np.random.rand(n_components)
-    h_input *= 0.000001
     h = Ndarray(h_input.shape, buffer=h_input)
+    print("Entire system")
     conv_rate = taylor_test(Jhat2, ai, h)
     ## https://bitbucket.org/tisaac/gtcse8803iuqsp19/src/master/notebooks/optimization/optimization-pyadjoint.ipynb?viewer=nbviewer
     
@@ -163,9 +185,11 @@ if __name__ == "__main__":
     plot(ka_opt2)
     plt.figure()
     plot(ka_opt)
-    
+      
     
     plt.show()
+
+
     import pdb
     pdb.set_trace()
 

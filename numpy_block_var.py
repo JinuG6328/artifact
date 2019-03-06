@@ -61,7 +61,7 @@ class Ndarray(FloatingType, np.ndarray):
     def copy_d(self, values = False):
         # import pdb
         # pdb.set_trace()
-        r = np.ndarray(self.shape, buffer = self)
+        r = np.ndarray(self.shape, buffer = copy.deepcopy(self))
         r_numpy_block = create_overloaded_object(r)
         return r_numpy_block
 
@@ -78,7 +78,7 @@ class Ndarray(FloatingType, np.ndarray):
     def _ad_convert_type(self, value, options=None):
         # import pdb
         # pdb.set_trace()
-        return Ndarray(value.shape, buffer=value)
+        return Ndarray(value.shape, buffer=copy.deepcopy(value))
 
     def _ad_create_checkpoint(self):
         # import pdb
@@ -119,7 +119,10 @@ class Ndarray(FloatingType, np.ndarray):
     def _ad_mul(self, other):
         # import pdb
         # pdb.set_trace()
-        r = np.ndarray(self.shape, buffer = self)
+        r = np.ndarray(self.shape, buffer = copy.deepcopy(self))
+        #r = np.zeros(self.shape)
+        # r = self * other
+        #r = copy.deepcopy(self)
         r *= other
         r_numpy_block = create_overloaded_object(r)
         return r_numpy_block
@@ -130,7 +133,9 @@ class Ndarray(FloatingType, np.ndarray):
     def _ad_add(self, other):
         # import pdb
         # pdb.set_trace()
-        r = np.ndarray(self.shape, buffer = self)
+        # r = copy.deepcopy(self)
+        # r = np.ndarray(self.shape, buffer = self)
+        r = np.ndarray(self.shape, buffer = copy.deepcopy(self))
         r += other
         r_numpy_block = create_overloaded_object(r)
         return r_numpy_block

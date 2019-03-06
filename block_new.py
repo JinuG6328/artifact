@@ -21,9 +21,13 @@ class UpdatedBlock(Block):
         return "UpdatedBlock"
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
+        # import pdb
+        # pdb.set_trace()
         return backend_dot_to_function(self.func,self.umat,inputs[0])
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        # import pdb
+        # pdb.set_trace()
         adj_input = adj_inputs[0]
         return self.y.dot(adj_input)
 
