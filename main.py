@@ -109,11 +109,17 @@ if __name__ == "__main__":
     
     ## Loading the U, Sigma, V^T
     U = np.loadtxt('U.txt')
+    # import pdb
+    # pdb.set_trace()
     # n_components = ka_opt.vector().size()
     # U = np.eye(n_components)
     #U = U[:,0:n_components]
     Sigma = np.loadtxt('Sigma.txt')
     VT = np.loadtxt('VT.txt')
+
+    ## Make problem easier
+    U = U[:,1:3]
+    n_components = 2
 
     ## With vector, we can define the problem we're interested in:
     prediction = Misfit(args, disc, name="prediction")
@@ -152,16 +158,17 @@ if __name__ == "__main__":
         residual2 = prediction.make_misfit(obs.observed,ka_new)
 
 
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
 
     reg1 = Regularization(ka_new)
+    reg2 = (ai.dot(ai)+0.001)
 
-    objective2 = residual2 + reg1.reg
+    objective2 = residual2 + reg2#reg1.reg1
     Jhat2 = prediction.misfit_op(objective2, Control(ai))
 
     problem1 = MinimizationProblem(Jhat2)
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 5}
     solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     
 
@@ -182,11 +189,11 @@ if __name__ == "__main__":
     ka_opt2 = ka_opt.copy(deepcopy = True)
     ka_opt2.vector()[:] = U.dot(ka_opt1)
 
-    plot(ka_opt2)
+    firstplot = plot(ka_opt2)
+    plt.colorbar(firstplot, ticks = [-10000,-5000, -1000, -500, -100, 0, 100, 500, 1000, 5000, 10000])
     plt.figure()
-    plot(ka_opt)
-      
-    
+    secondplot = plot(ka_opt)
+    plt.colorbar(secondplot, ticks = [0, 0.25, 0.5, 0.75, 1])  
     plt.show()
 
 
