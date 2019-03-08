@@ -7,6 +7,8 @@ from state import *
 from observation import *
 from SVD import *
 
+import matplotlib.pyplot as plt
+
 class Misfit(object):
 
     def eval_cb(self, j, ka):
@@ -14,6 +16,25 @@ class Misfit(object):
             self.ka_viz.assign(ka)
             self.controls << self.ka_viz
     
+    def make_misfit_red(self, d_w, ka):
+        ## TODO
+        ## input for the number of components
+        self.controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (self.Alpha, self.power) )
+        self.ka_viz = Function(self.state.A, name="ControlVisualisation")
+
+        self.ka = ka
+
+        self.w = self.state.solve(ka=self.ka)
+        self.f = Function(self.state.A)
+        for i in range(1,5):
+            for j in range(1,5):
+                self.e = Expression("sin(i*pi * (x[0]-0.5)) * sin(j*pi * (x[1]-0.5))", degree = 4, i = i, j = j)
+                self.mid = interpolate(self.e,self.state.W.sub(1).collapse())
+                self.f.vector()[:] += self.mid.vector()[:]
+        self.J = assemble((0.5*inner(self.w[1]-d_w[1], self.f))*dx)
+        self.J = self.J*self.J
+        return self.J
+
     def make_misfit(self, d_w, ka):
         self.controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (self.Alpha, self.power) )
         self.ka_viz = Function(self.state.A, name="ControlVisualisation")
@@ -21,21 +42,24 @@ class Misfit(object):
         self.ka = ka
 
         self.w = self.state.solve(ka=self.ka)
-        for i in range(1,3):
-            for j in range(1,3):
-                self.e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 1, i = i, j = j)
-        self.f = interpolate(self.e,self.state.W.sub(1).collapse())
-        self.J = assemble((0.5*inner(self.w[1]-d_w[1], self.f))*dx)
-        self.J = self.J*self.J
+        # self.f = Function(self.state.A)
+        # # import pdb
+        # # pdb.set_trace()
+        # for i in range(1,5):
+        #     for j in range(1,5):
+        #         self.e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 4, i = i, j = j)
+        #         self.mid = interpolate(self.e,self.state.W.sub(1).collapse())
+        #         self.f.vector()[:] += self.mid.vector()[:]
+        # self.J = assemble((0.5*inner(self.w[1]-d_w[1], self.f))*dx)
+        # self.J = self.J*self.J
 
         #self.J = assemble((0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])+0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
-        #self.J = assemble(0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])*dx )
+        self.J = assemble(0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])*dx )
         
         #self.m = Control(self.ka)
         # import pdb
         # pdb.set_trace()
         return self.J
-
     def misfit_op(self, J, m):
         self.Jhat = ReducedFunctional(J, m, eval_cb_post=self.eval_cb)
         self.hello = compute_gradient(self.Jhat.functional, self.Jhat.controls[0])

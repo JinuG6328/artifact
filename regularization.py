@@ -11,7 +11,7 @@ class Regularization(object):
     def __init__(self, k):
         self.Alpha = 0.1
         self.power = 1.0
-        self.reg = assemble(self.Alpha*(np.power(inner(grad(k),grad(k))+0.001,self.power))*dx)
+        self.reg = assemble(self.Alpha*(np.power(inner(grad(k),grad(k))+0.0001,self.power))*dx)
         
     # def add_args(parser):
     #     ''' Add options related to the mesh and discretization to the argument parser'''

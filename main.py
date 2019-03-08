@@ -77,11 +77,12 @@ if __name__ == "__main__":
         obs.get_observed(state.W)
      
     ## Next we dfined residual and regularization
+    residual_red = misfit.make_misfit_red(obs.observed, state.ka)
     residual = misfit.make_misfit(obs.observed, state.ka)
     reg = Regularization(state.ka)
     
     ## Next we combined misfit and regularization to define reduced functional objective
-    objective = residual + reg.reg
+    objective = residual_red + reg.reg
     with tape.name_scope("misfit_first_part"):
         Jhat = misfit.misfit_op(objective, Control(state.ka))
     
@@ -93,6 +94,10 @@ if __name__ == "__main__":
         solver = IPOPTSolver(problem, parameters=parameters)
         ka_opt = solver.solve()
 
+    sol_residual = misfit.make_misfit(obs.observed, state.ka)
+    # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
+    # import pdb
+    # pdb.set_trace()
     # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
     # xdmf_filename.write(ka_opt)
     ######################################################
@@ -103,23 +108,22 @@ if __name__ == "__main__":
     # U, Sigma, VT = randomized_svd1(Jhat, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
     
     ## Saving the U, Sigma, V^T
-    # np.savetxt('U.txt', U)
-    # np.savetxt('Sigma.txt', Sigma)
-    # np.savetxt('VT.txt', VT)
+    # np.savetxt('U_cen.txt', U)
+    # np.savetxt('Sigma_cen.txt', Sigma)
+    # np.savetxt('VT_cen.txt', VT)
+    
+    # np.savetxt('U_no_reg.txt', U)
+    # np.savetxt('Sigma_no_reg.txt', Sigma)
+    # np.savetxt('VT_no_reg.txt', VT)
     
     ## Loading the U, Sigma, V^T
-    U = np.loadtxt('U.txt')
-    # import pdb
-    # pdb.set_trace()
-    # n_components = ka_opt.vector().size()
-    # U = np.eye(n_components)
-    #U = U[:,0:n_components]
-    Sigma = np.loadtxt('Sigma.txt')
-    VT = np.loadtxt('VT.txt')
+    U = np.loadtxt('U_cen.txt')
+    Sigma = np.loadtxt('Sigma_cen.txt')
+    VT = np.loadtxt('VT_cen.txt')
 
     ## Make problem easier
-    U = U[:,1:3]
-    n_components = 2
+    # U = U[:,1:3]
+    # n_components = 2
 
     ## With vector, we can define the problem we're interested in:
     prediction = Misfit(args, disc, name="prediction")
@@ -127,36 +131,23 @@ if __name__ == "__main__":
     ai = Ndarray(intermediate.shape, buffer=intermediate)
         
     with tape.name_scope("putting_into_defined_function"):
-        ka_new = dot_to_function(state.A,U,ai)
-        ka_new_norm = assemble(dot(ka_new,ka_new)*dx)
-        # self_vec = Function(state.A)
-        # self_vec.vector()[:] = intermediate
-        # self_norm = assemble(dot(self_vec,self_vec)*dx)
-        # print(ka_new_norm,self_norm)
+        ka_new = dot_to_function(state.A, VT.T, ai)
+        # ka_new_norm = assemble(dot(ka_new,ka_new)*dx)
 
-    
     # intermediate1 = np.random.rand(n_components)
     # ai2 = Ndarray(intermediate1.shape, buffer=intermediate1)
     # ka_new1 = dot_to_function(state.A,U,ai2)
     # red_norm = ReducedFunctional(ka_new_norm, Control(ka_new))
     # conv_rate1 = taylor_test(red_norm, ka_new, ka_new1)
 
-    intermediate2 = np.random.rand(n_components)
-    ai3 = Ndarray(intermediate2.shape, buffer=intermediate2)
-    red_norm1 = ReducedFunctional(ka_new_norm, Control(ai))
-    print("ai3")
-    conv_rate2 = taylor_test(red_norm1, ai, ai3)
-
-    
-    # ai_norm = assemble((ai.dot(ai))*dx)
-    # intermediate3 = np.random.rand(n_components)*0.001
-    # ai4 = Ndarray(intermediate3.shape, buffer=intermediate3)
-    # red_norm1 = ReducedFunctional(ai_norm, Control(ai))
-    # conv_rate2 = taylor_test(red_norm1, ai, ai4)
+    # intermediate2 = np.random.rand(n_components)
+    # ai3 = Ndarray(intermediate2.shape, buffer=intermediate2)
+    # red_norm1 = ReducedFunctional(ka_new_norm, Control(ai))
+    # print("ai3")
+    # conv_rate2 = taylor_test(red_norm1, ai, ai3)
 
     with tape.name_scope("Making_residual"):
         residual2 = prediction.make_misfit(obs.observed,ka_new)
-
 
     # import pdb
     # pdb.set_trace()
@@ -164,11 +155,13 @@ if __name__ == "__main__":
     reg1 = Regularization(ka_new)
     reg2 = (ai.dot(ai)+0.001)
 
-    objective2 = residual2 + reg2#reg1.reg1
+    objective2 = residual2 #+ reg1.reg
     Jhat2 = prediction.misfit_op(objective2, Control(ai))
 
+    ## TODO constraints
+    # constraints = UFLInequalityConstraint((V/delta - rho), ai)
     problem1 = MinimizationProblem(Jhat2)
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 5}
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
     solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     
 
@@ -178,7 +171,6 @@ if __name__ == "__main__":
     h = Ndarray(h_input.shape, buffer=h_input)
     print("Entire system")
     conv_rate = taylor_test(Jhat2, ai, h)
-    ## https://bitbucket.org/tisaac/gtcse8803iuqsp19/src/master/notebooks/optimization/optimization-pyadjoint.ipynb?viewer=nbviewer
     
     ## Prediction
     # ai + Sigma[0]*V^T*error <= epsilon
@@ -190,7 +182,7 @@ if __name__ == "__main__":
     ka_opt2.vector()[:] = U.dot(ka_opt1)
 
     firstplot = plot(ka_opt2)
-    plt.colorbar(firstplot, ticks = [-10000,-5000, -1000, -500, -100, 0, 100, 500, 1000, 5000, 10000])
+    plt.colorbar(firstplot, ticks = [-10, 0, 10, 50])
     plt.figure()
     secondplot = plot(ka_opt)
     plt.colorbar(secondplot, ticks = [0, 0.25, 0.5, 0.75, 1])  
