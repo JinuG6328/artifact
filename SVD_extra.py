@@ -38,7 +38,9 @@ def safe_sparse_dot(a, b):
         #hello=compute_gradient(a.functional, a.controls[0])
         for i in range(len(b.T)):
             q_dot.vector()[:] = np.ascontiguousarray(b.T[i])
-            #c_dot = compute_hessian(a.functional, a.controls[0], q_dot)
+            import pdb
+            pdb.set_trace()
+            #compute_hessian(a.functional, a.controls[0], q_dot)
             c_dot = a.hessian(q_dot)
             c[:,i] = c_dot.vector()[:]
             #print(c[i])
@@ -114,8 +116,10 @@ def randomized_range_finder(A, size, n_iter, Size_f_rf, power_iteration_normaliz
 
     # Perform power iterations with Q to further 'imprint' the top
     # singular vectors of A in Q
+    import pdb
+    pdb.set_trace()
     for i in range(n_iter):
-        print("Power iteration %d" % i)
+        prset_int("Power iteration %d" % i)
         if power_iteration_normalizer == 'none':
             Q = safe_sparse_dot(A, Q)
             Q = safe_sparse_dot(A, Q)
@@ -242,7 +246,7 @@ def randomized_svd1(M, n_components, n_oversamples=10, n_iter='auto',
     # Change m to rf
     # import pdb
     # pdb.set_trace()
-    M = get_matrix(M)
+    #M = get_matrix(M)
     Q = randomized_range_finder(M, n_random, n_iter, size, power_iteration_normalizer, random_state)
                               #(A, size, n_iter, Size_f_rf, power_iteration_normalizer='auto', random_state=None):
 

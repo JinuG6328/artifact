@@ -13,6 +13,7 @@ from scipy import linalg, sparse
 from sklearn.utils import *
 from sklearn.utils.extmath import svd_flip
 from SVD_extra import get_matrix, safe_sparse_dot, randomized_range_finder, randomized_svd1
+#from SVD import safe_sparse_dot, randomized_range_finder, randomized_svd
 from initialize import *
 
 from Inverse import *
@@ -45,6 +46,8 @@ parser.add_argument("-r", "--regularization", type=int, default=0, help="power o
 parser.add_argument("-nc", "--number_of_components", type=int, default=10, help="number of components in Truncated SVD")
 
 if __name__ == "__main__":
+
+    set_log_level(16)
     
     tape = get_working_tape()
    
@@ -85,6 +88,8 @@ if __name__ == "__main__":
     objective = residual_red + reg.reg
     with tape.name_scope("misfit_first_part"):
         Jhat = misfit.misfit_op(objective, Control(state.ka))
+
+    #Jhat_red = ReducedFunctional(residual_red, Control(state.))
     
     ######################################################
     ## Sovling minimization problem and save the result ##
@@ -100,12 +105,23 @@ if __name__ == "__main__":
     # pdb.set_trace()
     # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
     # xdmf_filename.write(ka_opt)
-    ######################################################
+    ###################################################set_###
+
+    import pdb
+    pdb.set_trace()
+    with tape.name_scope("misfit_at_solution"):
+        sol_residual_red = misfit.make_misfit_red(obs.observed, ka_opt)
+
+    tape.visualise()
+
+    Jhat_red = ReducedFunctional(sol_residual_red, Control(ka_opt))
+
+    hello = compute_gradient(Jhat_red.functional, Jhat_red.controls[0])
 
     ## At optimal point, we do partial SVD, get the vectors
-    n_components = 50
-    n_iter = 100   
-    # U, Sigma, VT = randomized_svd1(Jhat, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
+    n_components = 2#100
+    n_iter = 0#00   
+    U, Sigma, VT = randomized_svd1(Jhat_red, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
     
     ## Saving the U, Sigma, V^T
     # np.savetxt('U_cen.txt', U)
@@ -113,13 +129,13 @@ if __name__ == "__main__":
     # np.savetxt('VT_cen.txt', VT)
     
     # np.savetxt('U_no_reg.txt', U)
-    # np.savetxt('Sigma_no_reg.txt', Sigma)
+    # np.savetxt('Sigma_no_reg.txt', Sigma)set_lo
     # np.savetxt('VT_no_reg.txt', VT)
     
     ## Loading the U, Sigma, V^T
-    U = np.loadtxt('U_cen.txt')
-    Sigma = np.loadtxt('Sigma_cen.txt')
-    VT = np.loadtxt('VT_cen.txt')
+    # U = np.loadtxt('U_cen.txt')
+    # Sigma = np.loadtxt('Sigma_cen.txt')
+    # VT = np.loadtxt('VT_cen.txt')
 
     ## Make problem easier
     # U = U[:,1:3]
@@ -194,18 +210,3 @@ if __name__ == "__main__":
 
     # xdmf_filename = XDMFFile("reduced_solution.xdmf")
     # xdmf_filename.write(ka_opt2)
-
-    # import pdb
-    # pdb.set_trace()
-    # Projection
-    # Interpolate
-
-    # TODO: get a pyadjoint block for applying U (Pyadjoint block for numpy array)
-    # U_pa (for PyAdjoint)
-    # pred_value = prediction.misfit(U_py.apply(m_enc))
-    
-    # if we do this right, then we can get a ReducedFuntional for Control(m_enc)
-
-    # TODO: define a encoded version of the prediction, that uses the full prediction on the expanded/decoded state
-    # TODO: get reducedFunction block for encoded prediction and run optimization problem
-    
