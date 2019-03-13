@@ -27,13 +27,13 @@ class Misfit(object):
         self.w = self.state.solve(ka=self.ka)
         self.f = Function(self.state.A)
         self.J = assemble(inner(self.f,self.f)*dx)
-        import pdb
-        pdb.set_trace()
-        for i in range(1,3):
-            for j in range(1,3):
+        # import pdb
+        # pdb.set_trace()
+        for i in range(1,4):
+            for j in range(1,4):
                 self.e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 4, i = i, j = j)
                 self.mid = interpolate(self.e,self.state.W.sub(1).collapse())
-                self.J_int = assemble((0.5*inner(self.w[1]-d_w[1], self.f))*dx)
+                self.J_int = assemble((0.5*inner(self.w[1]-d_w[1], self.mid))*dx)
                 self.J_int_2 = self.J_int*self.J_int
                 self.J += self.J_int_2
         return self.J

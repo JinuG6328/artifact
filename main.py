@@ -107,8 +107,8 @@ if __name__ == "__main__":
     # xdmf_filename.write(ka_opt)
     ###################################################set_###
 
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
     with tape.name_scope("misfit_at_solution"):
         sol_residual_red = misfit.make_misfit_red(obs.observed, ka_opt)
 
@@ -119,10 +119,12 @@ if __name__ == "__main__":
     hello = compute_gradient(Jhat_red.functional, Jhat_red.controls[0])
 
     ## At optimal point, we do partial SVD, get the vectors
-    n_components = 2#100
+    n_components = 20#100
     n_iter = 0#00   
     U, Sigma, VT = randomized_svd1(Jhat_red, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
     
+    import pdb
+    pdb.set_trace()
     ## Saving the U, Sigma, V^T
     # np.savetxt('U_cen.txt', U)
     # np.savetxt('Sigma_cen.txt', Sigma)
