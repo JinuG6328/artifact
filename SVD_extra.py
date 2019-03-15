@@ -4,7 +4,7 @@ from scipy import linalg
 from sklearn.utils import *
 from sklearn.utils.extmath import svd_flip
 import numpy as np
-import tensorflow as tf
+#import tensorflow as tf
 
 def get_matrix(A):
     fs = A.controls[0].function_space()
@@ -34,8 +34,8 @@ def safe_sparse_dot(a, b):
         c = np.ndarray(b.shape)
         # tape = get_working_tape()
         # tape.visualise()
-        print(type(a.functional))
-        #hello=compute_gradient(a.functional, a.controls[0])
+        # print(type(a.functional))
+        # hello=compute_gradient(a.functional, a.controls[0])
         for i in range(len(b.T)):
             q_dot.vector()[:] = np.ascontiguousarray(b.T[i])
             # import pdb

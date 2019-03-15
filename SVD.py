@@ -4,7 +4,7 @@ from scipy import linalg
 from sklearn.utils import *
 from sklearn.utils.extmath import svd_flip
 import numpy as np
-import tensorflow as tf
+#import tensorflow as tf
 
 def safe_sparse_dot(a, b):
     

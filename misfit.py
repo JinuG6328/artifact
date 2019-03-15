@@ -29,8 +29,8 @@ class Misfit(object):
         self.J = assemble(inner(self.f,self.f)*dx)
         # import pdb
         # pdb.set_trace()
-        for i in range(1,4):
-            for j in range(1,4):
+        for i in range(1,3):
+            for j in range(1,3):
                 self.e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 4, i = i, j = j)
                 self.mid = interpolate(self.e,self.state.W.sub(1).collapse())
                 self.J_int = assemble((0.5*inner(self.w[1]-d_w[1], self.mid))*dx)

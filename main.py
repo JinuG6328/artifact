@@ -4,7 +4,6 @@ import os
 from fenics import *
 from fenics_adjoint import *
 import sympy as sym
-import moola
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -33,9 +32,6 @@ from numpy_block_var import Ndarray
 ## Using this function, we could successfuly use adjoint equation to estimate the parameters. 
 from dot_to_function import dot_to_function
 dot_to_function = overload_function(dot_to_function, UpdatedBlock)
-
-# import pdb
-# pdb.set_trace()
 
 ## We can change the setting on the command line
 parser = argparse.ArgumentParser()
@@ -89,7 +85,6 @@ if __name__ == "__main__":
     with tape.name_scope("misfit_first_part"):
         Jhat = misfit.misfit_op(objective, Control(state.ka))
 
-    #Jhat_red = ReducedFunctional(residual_red, Control(state.))
     
     ######################################################
     ## Sovling minimization problem and save the result ##
@@ -100,26 +95,14 @@ if __name__ == "__main__":
         ka_opt = solver.solve()
 
     sol_residual = misfit.make_misfit(obs.observed, state.ka)
-    # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
-    # import pdb
-    # pdb.set_trace()
-    # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
-    # xdmf_filename.write(ka_opt)
-    ###################################################set_###
-
-    # import pdb
-    # pdb.set_trace()
-    with tape.name_scope("misfit_at_solution"):
-        sol_residual_red = misfit.make_misfit_red(obs.observed, ka_opt)
-
-    tape.visualise()
-
-    Jhat_red = ReducedFunctional(sol_residual_red, Control(ka_opt))
-
-    hello = compute_gradient(Jhat_red.functional, Jhat_red.controls[0])
+    sol_residual_red = misfit.make_misfit_red(obs.observed, state.ka)
+    
+    Jhat_red = misfit.misfit_op(sol_residual_red, Control(state.ka))
+    # Jhat_red = ReducedFunctional(sol_residual_red, Control(state.ka))
+    # hello = compute_gradient(Jhat_red.functional, Jhat_red.controls[0])
 
     ## At optimal point, we do partial SVD, get the vectors
-    n_components = 20#100
+    n_components = 10#100
     n_iter = 0#00   
     U, Sigma, VT = randomized_svd1(Jhat_red, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
     
@@ -145,12 +128,12 @@ if __name__ == "__main__":
 
     ## With vector, we can define the problem we're interested in:
     prediction = Misfit(args, disc, name="prediction")
+    
     intermediate = np.random.rand(n_components)
     ai = Ndarray(intermediate.shape, buffer=intermediate)
         
     with tape.name_scope("putting_into_defined_function"):
         ka_new = dot_to_function(state.A, VT.T, ai)
-        # ka_new_norm = assemble(dot(ka_new,ka_new)*dx)
 
     # intermediate1 = np.random.rand(n_components)
     # ai2 = Ndarray(intermediate1.shape, buffer=intermediate1)
@@ -170,8 +153,6 @@ if __name__ == "__main__":
     # import pdb
     # pdb.set_trace()
 
-    reg1 = Regularization(ka_new)
-    reg2 = (ai.dot(ai)+0.001)
 
     objective2 = residual2 #+ reg1.reg
     Jhat2 = prediction.misfit_op(objective2, Control(ai))
@@ -179,25 +160,31 @@ if __name__ == "__main__":
     ## TODO constraints
     # constraints = UFLInequalityConstraint((V/delta - rho), ai)
     problem1 = MinimizationProblem(Jhat2)
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
     solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     
 
 
     ## Taylor test
-    h_input = np.random.rand(n_components)
-    h = Ndarray(h_input.shape, buffer=h_input)
-    print("Entire system")
-    conv_rate = taylor_test(Jhat2, ai, h)
+    # h_input = np.random.rand(n_components)
+    # h = Ndarray(h_input.shape, buffer=h_input)
+    # print("Entire system")
+    # conv_rate = taylor_test(Jhat2, ai, h)
     
-    ## Prediction
+    ## Cpost
     # ai + Sigma[0]*V^T*error <= epsilon
 
-    tape.visualise()
+    # tape.visualise()
 
     # Save the result using existing program tool.
     ka_opt2 = ka_opt.copy(deepcopy = True)
     ka_opt2.vector()[:] = U.dot(ka_opt1)
+
+    ## Cpost
+    # Cpost = (I + C_prior*Forward*C_noise^-1*Forward)^-2C_prior
+
+    import pdb
+    pdb.set_trace()
 
     firstplot = plot(ka_opt2)
     plt.colorbar(firstplot, ticks = [-10, 0, 10, 50])
@@ -205,7 +192,6 @@ if __name__ == "__main__":
     secondplot = plot(ka_opt)
     plt.colorbar(secondplot, ticks = [0, 0.25, 0.5, 0.75, 1])  
     plt.show()
-
 
     import pdb
     pdb.set_trace()
