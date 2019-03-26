@@ -51,58 +51,13 @@ def Inverse():
 	Alpha = Constant(0.0)
 	power = 1.
 
-	# d_p = Function(W.sub(1).collapse())
-	# input_file = HDF5File(mesh.mpi_comm(), "p_n.h5", "r")
-	# input_file.read(d_p, "Pressure")
-	# input_file.close()
-
-	# d_u = Function(W.sub(0).collapse())
-	# input_file = HDF5File(mesh.mpi_comm(), "u_n.h5", "r")
-	# input_file.read(d_u, "Velocity")
-	# input_file.close()
-
-	# d_W = Function(W)
-	# input_file = HDF5File(mesh.mpi_comm(), "w.h5", "r")
-	# input_file.read(d_W, "Mixed")
-	# input_file.close()
-
 	mesh1 = UnitSquareMesh(8,8)
 	A1 = get_function_space(mesh1)
 	F1 = Function(A1)
-	#F2 = Function(A1)
-	#print(type(d_u))
-	#lp = LagrangeInterpolator()
-	#lp.interpolate(F1, d_p)
-	#d_p = project(d_p,A1)
-	#print(type(F1))
-	#import pdb
-	#pdb.set_trace()
-
-
+	
 	ka = interpolate(V, A) # initial guess.
 	w = forward_problem(ka) 
 	(u,p) = split(w)
-	#(u,p) = w.split(True)
-	#print(type(u))
-	#p = project(p,A1)
-	# import pdb
-	# pdb.set_trace()
-	
-	#lp.interpolate(F2, p)
-
-	# Size1 = 1
-	# mesh1, boundaries1 = get_mesh(Size1)
-	# W1, bcs1 = get_state_space(mesh1, boundaries1)
-   
-	# DW = Function(W1)
-	# SW = Function(W1)
-
-	# A1 = get_function_space(mesh1)
-	# K1 = Function(A1)
-	# K1.interpolate(ka)
-
-	# DW.interpolate(d_W)
-	# SW.interpolate(w)
 
 	controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (Alpha, power) )
 	ka_viz = Function(A, name="ControlVisualisation")
@@ -111,11 +66,6 @@ def Inverse():
 		ka_viz.assign(ka)
 		controls << ka_viz
 	
-		# TODO: see if we can construct a J consisting of a pressure at fixed number of evaluation points
-	#J = Functional((0.5*inner(d_p-p, d_p-p)+0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
-	#J = Functional((0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
-	import pdb
-	pdb.set_trace()
 	#J = assemble((0.5*inner(DW[1]-SW[1], DW[1]-SW[1]))*dx)
 	e = Expression("sin(pi * x[0]) * sin(pi * x[1])", degree = 1)
 	f = interpolate(e,W.sub(1).collapse())
@@ -139,7 +89,8 @@ def Inverse():
 	print(Sigma)
 	lb = 0.0
 	ub = 1.0
-#224 the paper
+	
+	#224 the paper
 	problem = MinimizationProblem(Jhat, bounds=(lb, ub))
 
 	parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 100}
@@ -148,17 +99,3 @@ def Inverse():
 
 	xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Alpha ,power))
 	xdmf_filename.write(ka_opt)
-
-	# (u1,p1) = w.split(True)
-	# velocity_opt = File("opt_velocity.pvd")
-	# V2 = W.sub(0).collapse()
-	# velo_viz = Function(V2, name="velocity")
-	# velo_viz.assign(u1)
-	# velocity_opt << velo_viz
-
-
-	# pressure_opt = File("opt_pressure.pvd")
-	# V3 = W.sub(1).collapse()
-	# pressure_viz = Function(V3, name="pressure")
-	# pressure_viz.assign(p1)
-	# pressure_opt << pressure_viz

@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 
 class Misfit(object):
 
+    def add_args(parser):
+        parser.add_argument("-nc", "--num_component", type=int, default=9, help="add noise with specific standard deviation")
+
     def eval_cb(self, j, ka):
         if isinstance(ka, Function):
             self.ka_viz.assign(ka)
@@ -27,10 +30,9 @@ class Misfit(object):
         self.w = self.state.solve(ka=self.ka)
         self.f = Function(self.state.A)
         self.J = assemble(inner(self.f,self.f)*dx)
-        # import pdb
-        # pdb.set_trace()
-        for i in range(1,3):
-            for j in range(1,3):
+
+        for i in range(1,4):
+            for j in range(1,4):
                 self.e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 4, i = i, j = j)
                 self.mid = interpolate(self.e,self.state.W.sub(1).collapse())
                 self.J_int = assemble((0.5*inner(self.w[1]-d_w[1], self.mid))*dx)
@@ -45,18 +47,6 @@ class Misfit(object):
         self.ka = ka
 
         self.w = self.state.solve(ka=self.ka)
-        # self.f = Function(self.state.A)
-        # # import pdb
-        # # pdb.set_trace()
-        # for i in range(1,5):
-        #     for j in range(1,5):
-        #         self.e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 4, i = i, j = j)
-        #         self.mid = interpolate(self.e,self.state.W.sub(1).collapse())
-        #         self.f.vector()[:] += self.mid.vector()[:]
-        # self.J = assemble((0.5*inner(self.w[1]-d_w[1], self.f))*dx)
-        # self.J = self.J*self.J
-
-        #self.J = assemble((0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])+0.5*inner(d_u-u, d_u-u))*dx + Alpha*(np.power(inner(grad(ka),grad(ka))+0.001,power))*dx)
         self.J = assemble(0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])*dx )
         
         #self.m = Control(self.ka)
@@ -90,12 +80,5 @@ class Misfit(object):
             input_file.read(self.d_w, "Mixed")
             input_file.close()
 
-               
-        # import pdb
-        # pdb.set_trace()       
-
         print("Misfit works")
-        # self.n_components = 3
-        # self.n_iter = 3
-        # self.U, self.Sigma, self.VT = randomized_svd(self.Jhat, n_components= self.n_components, n_iter= self.n_iter, size = (disc.n+1)*(disc.n+1))
 
