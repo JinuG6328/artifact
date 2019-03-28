@@ -117,9 +117,6 @@ def randomized_range_finder(A, size, n_iter, Size_f_rf, power_iteration_normaliz
         if power_iteration_normalizer == 'none':
             Q = safe_sparse_dot(A, Q)
             Q = safe_sparse_dot(A, Q)
-            Q = safe_sparse_dot(A, Q)
-            Q = safe_sparse_dot(A, Q)
-            Q = safe_sparse_dot(A, Q)
         elif power_iteration_normalizer == 'LU':
             Q, _ = linalg.lu(safe_sparse_dot(A, Q), permute_l=True)
             # TODO: rf.hessian transpose?

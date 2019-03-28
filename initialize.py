@@ -1,6 +1,7 @@
 from fenics import *
 from fenics_adjoint import *
 import numpy as np
+import math
 
 
 class Left(SubDomain):
@@ -67,6 +68,7 @@ def get_function_space(mesh):
 
 def alpha(ka):
     return ka
+    #return math.exp(ka)
 
 def get_coefficient_space(mesh):
     K = FunctionSpace(mesh, 'DG', 0)

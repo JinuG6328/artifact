@@ -99,7 +99,6 @@ if __name__ == "__main__":
         solver = IPOPTSolver(problem, parameters=parameters)
         ka_opt = solver.solve()
 
-    sol_residual = misfit.make_misfit(obs.observed, state.ka)
     # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
     # import pdb
     # pdb.set_trace()
@@ -107,15 +106,12 @@ if __name__ == "__main__":
     # xdmf_filename.write(ka_opt)
     ###################################################set_###
 
-    # import pdb
-    # pdb.set_trace()
     with tape.name_scope("misfit_at_solution"):
-        sol_residual_red = misfit.make_misfit_red(obs.observed, ka_opt)
+        sol_residual = misfit.make_misfit(obs.observed, state.ka)
+        sol_residual_red = misfit.make_misfit_red(obs.observed, state.ka)
 
-    #tape.visualise()
-
-    Jhat_red = ReducedFunctional(sol_residual_red, Control(ka_opt))
-    hello = compute_gradient(Jhat_red.functional, Jhat_red.controls[0])
+    Jhat_red = ReducedFunctional(sol_residual_red, Control(state.ka))
+    hello1 = compute_gradient(Jhat_red.functional, Jhat_red.controls[0])
 
     ## At optimal point, we do partial SVD, get the vectors
     n_components = 20#100
@@ -126,9 +122,9 @@ if __name__ == "__main__":
     # pdb.set_trace()
     
     # Saving the U, Sigma, V^T
-    np.savetxt('U_2.txt', U)
-    np.savetxt('Sigma_2.txt', Sigma)
-    np.savetxt('VT_2.txt', VT)
+    # np.savetxt('U_2.txt', U)
+    # np.savetxt('Sigma_2.txt', Sigma)
+    # np.savetxt('VT_2.txt', VT)
     
     # np.savetxt('U_no_reg.txt', U)
     # np.savetxt('Sigma_no_reg.txt', Sigma)set_lo
@@ -148,39 +144,24 @@ if __name__ == "__main__":
     intermediate = np.random.rand(n_components)
     ai = Ndarray(intermediate.shape, buffer=intermediate)
         
-    with tape.name_scope("putting_into_defined_function"):
+    with tape.name_scope("Putting_into_defined_function"):
         ka_new = dot_to_function(state.A, VT.T, ai)
         # ka_new_norm = assemble(dot(ka_new,ka_new)*dx)
 
-    # intermediate1 = np.random.rand(n_components)
-    # ai2 = Ndarray(intermediate1.shape, buffer=intermediate1)
-    # ka_new1 = dot_to_function(state.A,U,ai2)
-    # red_norm = ReducedFunctional(ka_new_norm, Control(ka_new))
-    # conv_rate1 = taylor_test(red_norm, ka_new, ka_new1)
-
-    # intermediate2 = np.random.rand(n_components)
-    # ai3 = Ndarray(intermediate2.shape, buffer=intermediate2)
-    # red_norm1 = ReducedFunctional(ka_new_norm, Control(ai))
-    # print("ai3")
-    # conv_rate2 = taylor_test(red_norm1, ai, ai3)
-
     with tape.name_scope("Making_residual"):
-        residual2 = prediction.make_misfit(obs.observed,ka_new)
+        residual2 = prediction.make_misfit(obs.observed, ka_new)
 
-    # import pdb
-    # pdb.set_trace()
-    reg1 = Regularization(ka_new)
-
-    objective2 = residual2 #+ reg1.reg
+    reg1 = Regularization(ka_new, alpha = 1)
+    
+    objective2 = residual2 + reg1.reg
     Jhat2 = prediction.misfit_op(objective2, Control(ai))
 
     ## TODO constraints
     # constraints = UFLInequalityConstraint((V/delta - rho), ai)
     problem1 = MinimizationProblem(Jhat2)
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 30}
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10}
     solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     
-
 
     ## Taylor test
     # h_input = np.random.rand(n_components)
@@ -192,7 +173,7 @@ if __name__ == "__main__":
     # ai + Sigma[0]*V^T*error <= epsilon
 
     ## Cpost
-    C_prior = misfit.misfit_op(reg.reg, Control(state.ka))
+    # C_prior = misfit.misfit_op(reg.reg, Control(state.ka))
     # Cpost = (I + C_prior*Forward*C_noise^-1*Forward)^-1 * C_prior
     
     # Cpost Cholesky factorization
@@ -204,9 +185,12 @@ if __name__ == "__main__":
     ka_opt2 = ka_opt.copy(deepcopy = True)
     
     ## Todo Outlier detect?
+    
+    # ka_opt2.vector()[:] = reject_outlier(U.dot(ka_opt1))
+    ka_opt2.vector()[:] = U.dot(ka_opt1)
+    print("Norm %f", np.linalg.norm(U.dot(ka_opt1)))
     import pdb
     pdb.set_trace()
-    ka_opt2.vector()[:] = reject_outlier(U.dot(ka_opt1))
 
     firstplot = plot(ka_opt2)
     plt.colorbar(firstplot, ticks = [-10, -1, 0, 1, 10, 50])
