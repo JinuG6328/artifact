@@ -6,6 +6,17 @@ from sklearn.utils.extmath import svd_flip
 import numpy as np
 #import tensorflow as tf
 
+class PriorPrecHessian():
+    def __init__(reduced_functional, regularization_form):
+        self._rf = reduced_functional
+        self._reg = hessian_regularization_form
+
+    def dot(self, b):
+        y = self._rf.functional.hessian(b)
+        L = assemble(self._reg)
+        solve(L,y,z)
+        return z
+
 def get_matrix(A):
     fs = A.controls[0].function_space()
     q_dot = Function(fs)

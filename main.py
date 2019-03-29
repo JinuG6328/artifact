@@ -4,7 +4,6 @@ import os
 from fenics import *
 from fenics_adjoint import *
 import sympy as sym
-#import moola
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -12,7 +11,7 @@ import matplotlib.pyplot as plt
 from scipy import linalg, sparse
 from sklearn.utils import *
 from sklearn.utils.extmath import svd_flip
-from SVD_extra import get_matrix, safe_sparse_dot, randomized_range_finder, randomized_svd1, reject_outlier
+from SVD_extra import get_matrix, safe_sparse_dot, randomized_range_finder, randomized_svd1, reject_outlier, PriorPrecHessian
 #from SVD import safe_sparse_dot, randomized_range_finder, randomized_svd
 from initialize import *
 
@@ -33,9 +32,6 @@ from numpy_block_var import Ndarray
 ## Using this function, we could successfuly use adjoint equation to estimate the parameters. 
 from dot_to_function import dot_to_function
 dot_to_function = overload_function(dot_to_function, UpdatedBlock)
-
-# import pdb
-# pdb.set_trace()
 
 ## We can change the setting on the command line
 parser = argparse.ArgumentParser()
@@ -98,7 +94,6 @@ if __name__ == "__main__":
         parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
         solver = IPOPTSolver(problem, parameters=parameters)
         ka_opt = solver.solve()
-
     # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
     # import pdb
     # pdb.set_trace()
@@ -110,16 +105,20 @@ if __name__ == "__main__":
         sol_residual = misfit.make_misfit(obs.observed, state.ka)
         sol_residual_red = misfit.make_misfit_red(obs.observed, state.ka)
 
-    Jhat_red = ReducedFunctional(sol_residual_red, Control(state.ka))
-    hello1 = compute_gradient(Jhat_red.functional, Jhat_red.controls[0])
+    Jhat_red = misfit.misfit_op(sol_residual_red, Control(state.ka))
 
+
+    ## Cpost
+    Prior = PriorPrecHessian(Jhat_red, reg.reg)
+    
+
+
+    # C_prior = misfit.misfit_op(reg.reg, Control(state.ka))
+    # Cpost = (I + C_prior*Forward*C_noise^-1*Forward)^-1 * C_prior
     ## At optimal point, we do partial SVD, get the vectors
     n_components = 20#100
     n_iter = 50#00   
     U, Sigma, VT = randomized_svd1(Jhat_red, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
-
-    # import pdb
-    # pdb.set_trace()
     
     # Saving the U, Sigma, V^T
     # np.savetxt('U_2.txt', U)
@@ -172,14 +171,9 @@ if __name__ == "__main__":
     ## Prediction
     # ai + Sigma[0]*V^T*error <= epsilon
 
-    ## Cpost
-    # C_prior = misfit.misfit_op(reg.reg, Control(state.ka))
-    # Cpost = (I + C_prior*Forward*C_noise^-1*Forward)^-1 * C_prior
+
     
     # Cpost Cholesky factorization
-
-
-    #tape.visualise()
 
     # Save the result using existing program tool.
     ka_opt2 = ka_opt.copy(deepcopy = True)
@@ -189,6 +183,7 @@ if __name__ == "__main__":
     # ka_opt2.vector()[:] = reject_outlier(U.dot(ka_opt1))
     ka_opt2.vector()[:] = U.dot(ka_opt1)
     print("Norm %f", np.linalg.norm(U.dot(ka_opt1)))
+    
     import pdb
     pdb.set_trace()
 

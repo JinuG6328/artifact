@@ -1,7 +1,6 @@
 from fenics import *
 from fenics_adjoint import *
 import numpy as np
-import math
 
 
 class Left(SubDomain):
@@ -67,6 +66,9 @@ def get_function_space(mesh):
     return A
 
 def alpha(ka):
+    import pdb
+    pdb.set_trace()
+    ka.vector()[:] = np.exp(ka.vector()[:])
     return ka
     #return math.exp(ka)
 
