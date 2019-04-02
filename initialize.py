@@ -66,10 +66,10 @@ def get_function_space(mesh):
     return A
 
 def alpha(ka):
-    import pdb
-    pdb.set_trace()
-    ka.vector()[:] = np.exp(ka.vector()[:])
-    return ka
+    # import pdb
+    # pdb.set_trace()
+    # ka.vector()[:] = np.exp(ka.vector()[:])
+    return exp(ka)
     #return math.exp(ka)
 
 def get_coefficient_space(mesh):
