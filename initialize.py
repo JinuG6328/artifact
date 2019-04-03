@@ -40,6 +40,8 @@ def get_mesh(N):
 def get_state_space(mesh, boundaries=None):
 
     #setting two variable
+    # import pdb
+    # pdb.set_trace()
     V = FiniteElement("RT", mesh.ufl_cell(), 2)
     Q = FiniteElement("CG", mesh.ufl_cell(), 1)
 
@@ -66,11 +68,7 @@ def get_function_space(mesh):
     return A
 
 def alpha(ka):
-    # import pdb
-    # pdb.set_trace()
-    # ka.vector()[:] = np.exp(ka.vector()[:])
     return exp(ka)
-    #return math.exp(ka)
 
 def get_coefficient_space(mesh):
     K = FunctionSpace(mesh, 'DG', 0)

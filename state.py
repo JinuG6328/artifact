@@ -16,10 +16,10 @@ class State(object):
         self.V = Constant(0.5)
         self.ka = interpolate(self.V, self.A)
 
-        self.u, self.p = None, None
-        self.v, self.q = None, None
-        self.a = None
-        self.Amat, self.b = None, None
+        # self.u, self.p = None, None
+        # self.v, self.q = None, None
+        # self.a = None
+        # self.Amat, self.b = None, None
 
     def _get_residual_form(self, w):
         # maybe need this?

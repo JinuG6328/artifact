@@ -76,7 +76,7 @@ if __name__ == "__main__":
      
     ## Next we dfined residual and regularization
     residual_red = misfit.make_misfit_red(obs.observed, state.ka)
-    reg = Regularization(state.ka)
+    reg = Regularization(state.ka, state.A)
     
     ## Next we combined misfit and regularization to define reduced functional objective
     objective = residual_red + reg.reg
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     with tape.name_scope("Making_residual"):
         residual2 = prediction.make_misfit(obs.observed, ka_new)
 
-    reg1 = Regularization(ka_new, alpha = 1)
+    reg1 = Regularization(ka_new, state.A, alpha = 1)
     
     objective2 = residual2 + reg1.reg
     Jhat2 = prediction.misfit_op(objective2, Control(ai))

@@ -7,14 +7,19 @@ import numpy as np
 #import tensorflow as tf
 
 
-class Prior_inv():
+class Prior():
     def __init__(self, regularization_form, control):
         self._reg = regularization_form
         self._control = control
 
     def dot(self, b):
-        Jhat = ReducedFunctional(self._reg.reg, self._control)
+        import pdb
+        pdb.set_trace()
+        
+        Jhat = ReducedFunctional(self._reg.reg, Control(self._control))
         hello = compute_gradient(Jhat.functional, Jhat.controls[0])
+        Jhat1 = ReducedFunctional(self._reg.reg_func, Control(self._control))
+        hello1 = compute_gradient(Jhat1.functional, Jhat1.controls[0])
         return Jhat.hessian(b)  
         # Todo : 
         # return compute_hessian(self._reg.reg, self._control, b)
