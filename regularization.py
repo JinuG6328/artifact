@@ -23,6 +23,7 @@ class Regularization(object):
         pdb.set_trace()
 
         self.reg = assemble(self.Alpha*(np.power(inner(grad(k),grad(k))+0.0001,self.power))*dx)            
+        self.reg_checking = assemble(self.Alpha*grad(np.power(inner(grad(k),grad(k))+0.0001,self.power))*dx)
         ## Putting self.reg_val(Adjfloat) into gradient, but problem with mixedelement.
         # self.reg2 = assemble(grad(Constant(self.reg_val, cell = Functionspace.ufl_cell()))*dx)
         # self.reg1 = assemble(grad(self.Alpha*Constant(self.reg_val, cell = Functionspace.ufl_cell()))*dx)
