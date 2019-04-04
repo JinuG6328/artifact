@@ -44,6 +44,8 @@ class State(object):
         self.L2 = dot(self.v,self.n1)*Constant(1.)*self.myds(2)
 
         self.Amat, self.b = assemble_system(self.a, self.L1 + self.L2, self.bcs)
+        # import pdb
+        # pdb.set_trace()
         solve(self.Amat, self.w.vector(), self.b)
         return self.w
 

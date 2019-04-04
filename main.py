@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 from scipy import linalg, sparse
 from sklearn.utils import *
 from sklearn.utils.extmath import svd_flip
-from SVD_extra import get_matrix, safe_sparse_dot, randomized_range_finder, randomized_svd1, reject_outlier, Prior, PriorPrecHessian
+from SVD_extra import get_matrix, safe_sparse_dot, randomized_range_finder, randomized_svd1, reject_outlier
+from covariance import PriorPrecHessian
 #from SVD import safe_sparse_dot, randomized_range_finder, randomized_svd
 from initialize import *
 
@@ -109,8 +110,8 @@ if __name__ == "__main__":
 
 
     ## Cpost
-    prior = Prior(reg, state.ka)
-    prior.dot(ka_opt)
+    hello21 = PriorPrecHessian(Jhat_red, reg, state.ka)
+    interm = hello21.dot(ka_opt)
     
     import pdb
     pdb.set_trace()

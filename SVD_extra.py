@@ -7,36 +7,6 @@ import numpy as np
 #import tensorflow as tf
 
 
-class Prior():
-    def __init__(self, regularization_form, control):
-        self._reg = regularization_form
-        self._control = control
-
-    def dot(self, b):
-        import pdb
-        pdb.set_trace()
-        
-        Jhat = ReducedFunctional(self._reg.reg, Control(self._control))
-        hello = compute_gradient(Jhat.functional, Jhat.controls[0])
-        Jhat1 = ReducedFunctional(self._reg.reg_func, Control(self._control))
-        hello1 = compute_gradient(Jhat1.functional, Jhat1.controls[0])
-        return Jhat.hessian(b)  
-        # Todo : 
-        # return compute_hessian(self._reg.reg, self._control, b)
-
-class PriorPrecHessian():
-    def __init__(self, reduced_functional, regularization_form):
-        self._rf = reduced_functional
-        self._reg = regularization_form
-
-    def dot(self, b):
-        import pdb
-        pdb.set_trace()
-        y = self._rf.functional.hessian(b)
-        L = assemble(self._reg.reg)
-        solve(L,y,z)
-        return z
-
 def get_matrix(A):
     fs = A.controls[0].function_space()
     q_dot = Function(fs)

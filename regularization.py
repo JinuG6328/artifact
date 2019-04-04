@@ -1,5 +1,6 @@
 from fenics import *
 from fenics_adjoint import *
+import ufl
 
 from initialize import *
 from discretization import Discretization
@@ -11,23 +12,30 @@ class Regularization(object):
     def __init__(self, k, Functionspace, alpha = 0.1, power = 1.0):
         self.Alpha = alpha
         self.power = power
-        
-        # self.v, self.q = TestFunctions(Functionspace)
-        # w = Function(Functionspace)
-        # self.v1, self.q1 = split(w)
-        self.reg_val = assemble(self.Alpha*np.power((inner(grad(k),grad(k))+0.0001),self.power)*dx)
+        self.Functionspace = Functionspace
+
+        self.reg_form = self.Alpha*(np.power(inner(grad(k),grad(k))+0.0001,self.power))*dx
+        self.reg = assemble(self.reg_form) # float / adjointfloat (depending whether we're taping)
+        self.compute_hessian(k)
+
+    def compute_hessian(self, k):
+
         # import pdb
         # pdb.set_trace()
-        
-        import pdb
-        pdb.set_trace()
 
-        self.reg = assemble(self.Alpha*(np.power(inner(grad(k),grad(k))+0.0001,self.power))*dx)            
-        self.reg_checking = assemble(self.Alpha*grad(np.power(inner(grad(k),grad(k))+0.0001,self.power))*dx)
-        ## Putting self.reg_val(Adjfloat) into gradient, but problem with mixedelement.
-        # self.reg2 = assemble(grad(Constant(self.reg_val, cell = Functionspace.ufl_cell()))*dx)
-        # self.reg1 = assemble(grad(self.Alpha*Constant(self.reg_val, cell = Functionspace.ufl_cell()))*dx)
-        self.reg_func = assemble((self.Alpha*interpolate(Constant(self.reg_val), Functionspace))*dx)
+        form = self.reg_form
+        coeffs = form.coefficients() # list of Functions, should just contain original k
+        orig_k = coeffs[0]
+        replace_map = {}
+        replace_map[orig_k] = k
+        new_form = ufl.replace(form, replace_map)
+        k_hat = TestFunction(self.Functionspace)
+        grad_form = ufl.derivative(new_form, k, k_hat)
+        k_tilde = TrialFunction(self.Functionspace)
+        hess_form = ufl.derivative(grad_form, k, k_tilde)
+
+        mat = assemble(hess_form)
+        return mat
         
     #     if isinstance(k, Function):
     #         import pdb
