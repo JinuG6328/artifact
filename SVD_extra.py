@@ -4,6 +4,7 @@ from scipy import linalg
 from sklearn.utils import *
 from sklearn.utils.extmath import svd_flip
 import numpy as np
+from covariance import PriorPrecHessian
 #import tensorflow as tf
 
 
@@ -24,6 +25,23 @@ def get_matrix(A):
     
     return A_np
 
+def get_matrix_1(A):
+    fs = A._rf.controls[0].function_space()
+    q_dot = Function(fs)
+    c_dot = Function(fs)
+    size_of_mat = len(q_dot.vector()[:])
+    s = (size_of_mat,size_of_mat)
+    A_np = np.zeros(s)
+    for i in range(size_of_mat):
+        print(i)
+        c_dot = np.zeros(size_of_mat)
+        c_dot[i] = 1
+        q_dot.vector()[:] = np.ascontiguousarray(c_dot)
+        c_dot = A.dot(A._rf.hessian(q_dot))
+        A_np[:,i] = c_dot.vector()[:]    
+    
+    return A_np
+
 def reject_outlier(Ndarray):
     med = np.median(Ndarray)
     for i in range (len(Ndarray)):
@@ -34,14 +52,33 @@ def reject_outlier(Ndarray):
 def safe_sparse_dot(a, b):
     
     if isinstance(a, ReducedFunctional):
+        
+        import pdb
+        pdb.set_trace()
+        ## Todo c_dot
+
         fs = a.controls[0].function_space()
         q_dot = Function(fs)
-        c_dot = Function(fs)
+        #c_dot = Function(fs)
         c = np.ndarray(b.shape)
         for i in range(len(b.T)):
             q_dot.vector()[:] = np.ascontiguousarray(b.T[i])
-            c_dot = a.hessian(q_dot)
-            c[:,i] = c_dot.vector()[:]
+            #c_dot.vector()[:] = a.hessian(q_dot)
+            c[:,i] = a.hessian(q_dot).vector()[:]
+        return c
+
+    elif isinstance(a, PriorPrecHessian):
+        import pdb
+        pdb.set_trace()
+        
+        fs = a._rf.controls[0].function_space()
+        q_dot = Function(fs)
+        #c_dot = Function(fs)
+        c = np.ndarray(b.shape)
+        for i in range(len(b.T)):
+            q_dot.vector()[:] = np.ascontiguousarray(b.T[i])
+            #c_dot = a.dot(a._rf.hessian(q_dot))
+            c[:,i] = a.dot(a._rf.hessian(q_dot)).vector()[:]
         return c
 
     else:
@@ -241,9 +278,9 @@ def randomized_svd1(M, n_components, n_oversamples=10, n_iter='auto',
     # Change m to rf
     # import pdb
     # pdb.set_trace()
-    # M = get_matrix(M)
-    # np.savetxt('M.txt', M)
-    M = np.loadtxt('M.txt')
+    #M = get_matrix_1(M)
+    #np.savetxt('M.txt', M)
+    #M = np.loadtxt('M.txt')
     Q = randomized_range_finder(M, n_random, n_iter, size, power_iteration_normalizer, random_state)
                               #(A, size, n_iter, Size_f_rf, power_iteration_normalizer='auto', random_state=None):
 

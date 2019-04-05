@@ -16,7 +16,7 @@ class Regularization(object):
 
         self.reg_form = self.Alpha*(np.power(inner(grad(k),grad(k))+0.0001,self.power))*dx
         self.reg = assemble(self.reg_form) # float / adjointfloat (depending whether we're taping)
-        self.compute_hessian(k)
+        #self.compute_hessian(k)
 
     def compute_hessian(self, k):
 
