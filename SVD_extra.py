@@ -76,7 +76,7 @@ def safe_sparse_dot(a, b):
         for i in range(len(b.T)):
             q_dot.vector()[:] = np.ascontiguousarray(b.T[i])
             #c_dot = a.dot(a._rf.hessian(q_dot))
-            c[:,i] = a.dot(a._rf.hessian(q_dot)).vector()[:]
+            c[:,i] = a.dot(q_dot).vector()[:]
         return c
 
     else:
