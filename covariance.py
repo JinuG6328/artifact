@@ -14,51 +14,24 @@ class PriorPrecHessian():
         self.transpose = transpose
         if not transpose:
             self.T = PriorPrecHessian(reduced_functional, regularization_form, ka, transpose=True)
+            # self.T.dot(self.ka)
 
     def T(self):
         return self.T
     
     def dot(self, b): 
         
+        L = self._reg.compute_hessian(self.ka)
+        A = L.array()
+        p_A = np.linalg.pinv(A)
+        z = self.ka.copy(deepcopy=True)
         if self.transpose:
-            hessian = self._rf.hessian(b)
-            # # get L from Regularization.compute_hessian() somehow
-            # import pdb
-            # pdb.set_trace()
-            L = self._reg.compute_hessian(self.ka) 
-            z = self.ka.copy(deepcopy=True)
-            solve(L,z.vector(),hessian.vector(), annotate= False)
+            z1 = self.ka.copy(deepcopy=True)
+            z1.vector()[:] = p_A.dot(b.vector()[:])
+            z.vector()[:] = self._rf.hessian(z1).vector()[:]
+            return z
         else:
             hessian = self._rf.hessian(b).vector()[:]
-            # # get L from Regularization.compute_hessian() somehow
-            import pdb
-            pdb.set_trace()
-            L = self._reg.compute_hessian(self.ka) 
-            z = self.ka.copy(deepcopy=True)
-            A = L.array()
-            p_A = np.linalg.pinv(A)
             z.vector()[:] = p_A.dot(hessian)
-            #solve(L,z.vector(),hessian.vector(), annotate= False)
             return z
-        # import pdb
-        # pdb.set_trace()
-        
-        # fs = self.ka.function_space()
-        # q_dot = Function(fs)
-        # r_dot = Function(fs)
-        # size_of_mat = len(q_dot.vector()[:])
-        # s = (size_of_mat,size_of_mat)
-        # A_np = np.zeros(s)
-        # for i in range(size_of_mat):
-        #     #print(i)
-        #     c_dot = np.zeros(size_of_mat)
-        #     c_dot[i] = 1
-        #     q_dot.vector()[:] = np.ascontiguousarray(c_dot)
-        #     solve(L, r_dot.vector(), q_dot.vector(), annotate = False)
-        #     A_np[:,i] = r_dot.vector()[:]
-
-        # import pdb
-        # pdb.set_trace()
-        
-        # print(A_np)
         

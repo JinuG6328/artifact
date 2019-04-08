@@ -7,7 +7,6 @@ import numpy as np
 from covariance import PriorPrecHessian
 #import tensorflow as tf
 
-
 def get_matrix(A):
     fs = A.controls[0].function_space()
     q_dot = Function(fs)
@@ -37,7 +36,7 @@ def get_matrix_1(A):
         c_dot = np.zeros(size_of_mat)
         c_dot[i] = 1
         q_dot.vector()[:] = np.ascontiguousarray(c_dot)
-        c_dot = A.dot(A._rf.hessian(q_dot))
+        c_dot = A.dot(q_dot)
         A_np[:,i] = c_dot.vector()[:]    
     
     return A_np
@@ -52,10 +51,6 @@ def reject_outlier(Ndarray):
 def safe_sparse_dot(a, b):
     
     if isinstance(a, ReducedFunctional):
-        
-        import pdb
-        pdb.set_trace()
-        ## Todo c_dot
 
         fs = a.controls[0].function_space()
         q_dot = Function(fs)
@@ -66,16 +61,12 @@ def safe_sparse_dot(a, b):
         return c
 
     elif isinstance(a, PriorPrecHessian):
-        # import pdb
-        # pdb.set_trace()
         
         fs = a._rf.controls[0].function_space()
         q_dot = Function(fs)
-        #c_dot = Function(fs)
         c = np.ndarray(b.shape)
         for i in range(len(b.T)):
             q_dot.vector()[:] = np.ascontiguousarray(b.T[i])
-            #c_dot = a.dot(a._rf.hessian(q_dot))
             c[:,i] = a.dot(q_dot).vector()[:]
         return c
 
@@ -152,15 +143,18 @@ def randomized_range_finder(A, size, n_iter, Size_f_rf, power_iteration_normaliz
         print("Power iteration %d" % i)
         if power_iteration_normalizer == 'none':
             Q = safe_sparse_dot(A, Q)
-            Q = safe_sparse_dot(A, Q)
+            if isinstance(a, ReducedFunctional):
+                Q = safe_sparse_dot(A, Q)
+            else:
+                Q = safe_sparse_dot(A.T, Q)
         elif power_iteration_normalizer == 'LU':
             Q, _ = linalg.lu(safe_sparse_dot(A, Q), permute_l=True)
             # TODO: rf.hessian transpose?
-            Q, _ = linalg.lu(safe_sparse_dot(A, Q), permute_l=True)
+            Q, _ = linalg.lu(safe_sparse_dot(A.T, Q), permute_l=True)
         elif power_iteration_normalizer == 'QR':
             Q, _ = linalg.qr(safe_sparse_dot(A, Q), mode='economic')
             # TODO: rf.hessian transpose?
-            Q, _ = linalg.qr(safe_sparse_dot(A, Q), mode='economic')
+            Q, _ = linalg.qr(safe_sparse_dot(A.T, Q), mode='economic')
 
     # Sample the range of A using by linear projection of Q
     # Extract an orthonormal basis

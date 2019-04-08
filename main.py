@@ -115,12 +115,9 @@ if __name__ == "__main__":
     
     # import pdb
     # pdb.set_trace()
-
-    # C_prior = misfit.misfit_op(reg.reg, Control(state.ka))
-    # Cpost = (I + C_prior*Forward*C_noise^-1*Forward)^-1 * C_prior
-    ## At optimal point, we do partial SVD, get the vectors
-    n_components = 10#100
-    n_iter = 1#00   
+    
+    n_components = 20#100
+    n_iter = 20#00   
     U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
     
     # Saving the U, Sigma, V^T

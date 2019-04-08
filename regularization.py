@@ -16,7 +16,6 @@ class Regularization(object):
 
         self.reg_form = self.Alpha*(np.power(inner(grad(k),grad(k))+0.0001,self.power))*dx
         self.reg = assemble(self.reg_form) # float / adjointfloat (depending whether we're taping)
-        #self.compute_hessian(k)
 
     def compute_hessian(self, k):
 
@@ -31,16 +30,6 @@ class Regularization(object):
         k_tilde = TrialFunction(self.Functionspace)
         hess_form = ufl.derivative(grad_form, k, k_tilde)
         mat = assemble(hess_form)
-        A = mat.array()
-        import pdb
-        pdb.set_trace()
-        # size_h = int(sqrt(mat.array().size))
-        # size_h2 = (size_h, size_h)
-        # A = np.zeros(size_h2)
-        # for i in range(size_h):
-        #     A[i]=mat.array()[i]
-        # import pdb
-        # pdb.set_trace()
                 
         return mat
         
