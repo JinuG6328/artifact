@@ -20,9 +20,6 @@ class Regularization(object):
 
     def compute_hessian(self, k):
 
-        # import pdb
-        # pdb.set_trace()
-
         form = self.reg_form
         coeffs = form.coefficients() # list of Functions, should just contain original k
         orig_k = coeffs[0]
@@ -33,8 +30,16 @@ class Regularization(object):
         grad_form = ufl.derivative(new_form, k, k_hat)
         k_tilde = TrialFunction(self.Functionspace)
         hess_form = ufl.derivative(grad_form, k, k_tilde)
-
         mat = assemble(hess_form)
+        
+        # size_h = int(sqrt(mat.array().size))
+        # size_h2 = (size_h, size_h)
+        # A = np.zeros(size_h2)
+        # for i in range(size_h):
+        #     A[i]=mat.array()[i]
+        # import pdb
+        # pdb.set_trace()
+                
         return mat
         
     #     if isinstance(k, Function):
