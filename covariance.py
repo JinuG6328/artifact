@@ -29,13 +29,16 @@ class PriorPrecHessian():
             z = self.ka.copy(deepcopy=True)
             solve(L,z.vector(),hessian.vector(), annotate= False)
         else:
-            hessian = self._rf.hessian(b)
+            hessian = self._rf.hessian(b).vector()[:]
             # # get L from Regularization.compute_hessian() somehow
-            # import pdb
-            # pdb.set_trace()
+            import pdb
+            pdb.set_trace()
             L = self._reg.compute_hessian(self.ka) 
             z = self.ka.copy(deepcopy=True)
-            solve(L,z.vector(),hessian.vector(), annotate= False)
+            A = L.array()
+            p_A = np.linalg.pinv(A)
+            z.vector()[:] = p_A.dot(hessian)
+            #solve(L,z.vector(),hessian.vector(), annotate= False)
             return z
         # import pdb
         # pdb.set_trace()

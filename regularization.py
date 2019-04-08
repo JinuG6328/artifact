@@ -31,7 +31,9 @@ class Regularization(object):
         k_tilde = TrialFunction(self.Functionspace)
         hess_form = ufl.derivative(grad_form, k, k_tilde)
         mat = assemble(hess_form)
-        
+        A = mat.array()
+        import pdb
+        pdb.set_trace()
         # size_h = int(sqrt(mat.array().size))
         # size_h2 = (size_h, size_h)
         # A = np.zeros(size_h2)

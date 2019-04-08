@@ -59,11 +59,9 @@ def safe_sparse_dot(a, b):
 
         fs = a.controls[0].function_space()
         q_dot = Function(fs)
-        #c_dot = Function(fs)
         c = np.ndarray(b.shape)
         for i in range(len(b.T)):
             q_dot.vector()[:] = np.ascontiguousarray(b.T[i])
-            #c_dot.vector()[:] = a.hessian(q_dot)
             c[:,i] = a.hessian(q_dot).vector()[:]
         return c
 
