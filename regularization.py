@@ -32,18 +32,3 @@ class Regularization(object):
         mat = assemble(hess_form)
                 
         return mat
-        
-    #     if isinstance(k, Function):
-    #         import pdb
-    #         pdb.set_trace()
-    #         self.reg = assemble(self.Alpha*(np.power(inner(grad(k),grad(k))+0.0001,self.power))*dx)            
-    #         ## Putting self.reg_val(Adjfloat) into gradient, but problem with mixedelement.
-    #         # self.reg2 = assemble(grad(Constant(self.reg_val, cell = Functionspace.ufl_cell()))*dx)
-    #         # self.reg1 = assemble(grad(self.Alpha*Constant(self.reg_val, cell = Functionspace.ufl_cell()))*dx)
-    #         self.reg_func = assemble((self.Alpha*interpolate(Constant(self.reg_val), Functionspace))*dx)
-            
-    #     else:
-    #         self.reg = assemble(self.Alpha*(np.power(np.gradient(k).dot(np.gradient(k))+0.0001,self.power))*dx)
-    # # def add_args(parser):
-    #     ''' Add options related to the mesh and discretization to the argument parser'''
-    #     parser.add_argument("-n", "--grid-n", type=int, default=32, help="number of cells per grid direction")

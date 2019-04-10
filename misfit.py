@@ -31,8 +31,8 @@ class Misfit(object):
         self.f = Function(self.state.A)
         self.J = assemble(inner(self.f,self.f)*dx)
 
-        for i in range(1,4):
-            for j in range(1,4):
+        for i in range(1,3):
+            for j in range(1,3):
                 self.e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 9, i = i, j = j)
                 self.mid = interpolate(self.e,self.state.W.sub(1).collapse())
                 self.J_int = assemble((0.5*inner(self.w[1]-d_w[1], self.mid))*dx)
@@ -48,11 +48,8 @@ class Misfit(object):
 
         self.w = self.state.solve(ka=self.ka)
         self.J = assemble(0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])*dx )
-        
-        #self.m = Control(self.ka)
-        # import pdb
-        # pdb.set_trace()
         return self.J
+        
     def misfit_op(self, J, m):
         self.Jhat = ReducedFunctional(J, m, eval_cb_post=self.eval_cb)
         self.hello = compute_gradient(self.Jhat.functional, self.Jhat.controls[0])

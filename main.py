@@ -81,118 +81,79 @@ if __name__ == "__main__":
     
     ## Next we combined misfit and regularization to define reduced functional objective
     objective = residual_red + reg.reg
-    with tape.name_scope("misfit_first_part"):
-        Jhat = misfit.misfit_op(objective, Control(state.ka))
+    Jhat = misfit.misfit_op(objective, Control(state.ka))
 
-    # #Jhat_red = ReducedFunctional(residual_red, Control(state.))
-    # import pdb
-    # pdb.set_trace()
-
-    ######################################################
-    ## Sovling minimization problem and save the result ##
-    with tape.name_scope("minimization_first_part"):
-        problem = MinimizationProblem(Jhat, bounds=(0.0, 1.0))
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
-        solver = IPOPTSolver(problem, parameters=parameters)
-        ka_opt = solver.solve()
-    # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
-    # import pdb
-    # pdb.set_trace()
+    ## Sovling minimization problem and save the result
+    problem = MinimizationProblem(Jhat, bounds=(0.0, 1.0))
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10}
+    solver = IPOPTSolver(problem, parameters=parameters)
+    ka_opt = solver.solve()
     # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
     # xdmf_filename.write(ka_opt)
-    ###################################################set_###
 
-    with tape.name_scope("misfit_at_solution"):
-        sol_residual = misfit.make_misfit(obs.observed, state.ka)
-        sol_residual_red = misfit.make_misfit_red(obs.observed, state.ka)
+    ## Taylor test
+    # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
 
-    Jhat_red = misfit.misfit_op(sol_residual_red, Control(state.ka))
+    ## Making Jhat_red from misfit only 
+    Jhat_red = misfit.misfit_op(residual_red, Control(state.ka))
 
+    ## Calculating PriorPreconditionedHessian matrix of Jhat_red
+    priorprehessian = PriorPrecHessian(Jhat_red, reg, state.ka)    
 
-    ## Cpost
-    priorprehessian = PriorPrecHessian(Jhat_red, reg, state.ka)
-    #interm = hello21.dot(ka_opt)
-    
-    # import pdb
-    # pdb.set_trace()
-    
+    ## Number of components, number of iteration, and randomized SVD
     n_components = 20#100
     n_iter = 20#00   
     U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
-    
-    # Saving the U, Sigma, V^T
-    # np.savetxt('U_2.txt', U)
-    # np.savetxt('Sigma_2.txt', Sigma)
-    # np.savetxt('VT_2.txt', VT)
-    
-    # np.savetxt('U_no_reg.txt', U)
-    # np.savetxt('Sigma_no_reg.txt', Sigma)set_lo
-    # np.savetxt('VT_no_reg.txt', VT)
-    
-    ## Loading the U, Sigma, V^T
-    # U = np.loadtxt('U.txt')
-    # Sigma = np.loadtxt('Sigma.txt')
-    # VT = np.loadtxt('VT.txt')
 
-    ## Make problem easier
-    # U = U[:,1:3]
-    # n_components = 2
-
-    ## With vector, we can define the problem we're interested in:
+    ##########################################################
+    ## With U(VT), we can define the reduced space problem: ##
+    ##########################################################
+    
+    ## Making prediction object to use observations
     prediction = Misfit(args, disc, name="prediction")
+
+    ## Initializing the array to optimize
     intermediate = np.random.rand(n_components)
     ai = Ndarray(intermediate.shape, buffer=intermediate)
         
-    with tape.name_scope("Putting_into_defined_function"):
-        ka_new = dot_to_function(state.A, VT.T, ai)
-        # ka_new_norm = assemble(dot(ka_new,ka_new)*dx)
+    ## Converting the array into function
+    ka_new = dot_to_function(state.A, U, ai)
+    # ka_new = dot_to_function(state.A, VT.T, ai)
+    # ka_new_norm = assemble(dot(ka_new,ka_new)*dx)
 
-    with tape.name_scope("Making_residual"):
-        residual2 = prediction.make_misfit(obs.observed, ka_new)
+    ## Making_residual with full space
+    objective2 = prediction.make_misfit(obs.observed, ka_new)
 
-    reg1 = Regularization(ka_new, state.A, alpha = 1)
-    
-    objective2 = residual2 + reg1.reg
+    ## Making Jhat2
     Jhat2 = prediction.misfit_op(objective2, Control(ai))
 
+    ## Solve the optimization problem
     ## TODO constraints
     # constraints = UFLInequalityConstraint((V/delta - rho), ai)
     problem1 = MinimizationProblem(Jhat2)
     parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10}
     solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     
-
-    ## Taylor test
-    # h_input = np.random.rand(n_components)
-    # h = Ndarray(h_input.shape, buffer=h_input)
-    # print("Entire system")
-    # conv_rate = taylor_test(Jhat2, ai, h)
     
-    ## Prediction
-    # ai + Sigma[0]*V^T*error <= epsilon
 
-
-    
-    # Cpost Cholesky factorization
-
-    # Save the result using existing program tool.
+    ## Save the result using existing program tool.
     ka_opt2 = ka_opt.copy(deepcopy = True)
-    
-    ## Todo Outlier detect?
     
     # ka_opt2.vector()[:] = reject_outlier(U.dot(ka_opt1))
     ka_opt2.vector()[:] = U.dot(ka_opt1)
     print("Norm %f", np.linalg.norm(U.dot(ka_opt1)))
-    
-    import pdb
-    pdb.set_trace()
 
     firstplot = plot(ka_opt2)
-    plt.colorbar(firstplot, ticks = [-10, -1, 0, 1, 10, 50])
+    plt.colorbar(firstplot, ticks = [-0.1, 0, 1, 10, 50])
     plt.figure()
     secondplot = plot(ka_opt)
-    plt.colorbar(secondplot, ticks = [0, 0.25, 0.5, 0.75, 1])  
+    plt.colorbar(secondplot, ticks = [0, 0.49, 0.5, 0.75, 1])  
+    plt.figure()
+    plt.plot(Sigma)
     plt.show()
+    import pdb
+    pdb.set_trace()
+    #np.savetxt('Sigma.txt', Sigma)
 
     # xdmf_filename = XDMFFile("reduced_solution.xdmf")
     # xdmf_filename.write(ka_opt2)

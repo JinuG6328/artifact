@@ -271,8 +271,8 @@ def randomized_svd1(M, n_components, n_oversamples=10, n_iter='auto',
     # import pdb
     # pdb.set_trace()
     # M = get_matrix_1(M)
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
     #np.savetxt('M.txt', M)
     #M = np.loadtxt('M.txt')
     Q = randomized_range_finder(M, n_random, n_iter, size, power_iteration_normalizer, random_state)
