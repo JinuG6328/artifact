@@ -11,22 +11,18 @@ import matplotlib.pyplot as plt
 from scipy import linalg, sparse
 from sklearn.utils import *
 from sklearn.utils.extmath import svd_flip
+from pyadjoint.overloaded_function import overload_function
+
 from SVD_extra import get_matrix, safe_sparse_dot, randomized_range_finder, randomized_svd1, reject_outlier
 from covariance import PriorPrecHessian
-#from SVD import safe_sparse_dot, randomized_range_finder, randomized_svd
 from initialize import *
-
-from Inverse import *
 from discretization import Discretization
 from state import State
 from misfit import Misfit
 from observation import Observation
 from regularization import Regularization
-
-
 from block_new import UpdatedBlock
-from block_array import UpdatedBlock_arr
-from pyadjoint.overloaded_function import overload_function
+
 from numpy_block_var import Ndarray
 
 ## We already defined our customized function dot_to_function.
@@ -77,19 +73,26 @@ if __name__ == "__main__":
      
     ## Next we dfined residual and regularization
     residual_red = misfit.make_misfit_red(obs.observed, state.ka)
+    residual = misfit.make_misfit(obs.observed, state.ka)
     reg = Regularization(state.ka, state.A)
     
     ## Next we combined misfit and regularization to define reduced functional objective
-    objective = residual_red + reg.reg
+    objective = residual + reg.reg
     Jhat = misfit.misfit_op(objective, Control(state.ka))
 
     ## Sovling minimization problem and save the result
-    problem = MinimizationProblem(Jhat, bounds=(0.0, 1.0))
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10}
+    problem = MinimizationProblem(Jhat, bounds=(0.0, 5.0))
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
     solver = IPOPTSolver(problem, parameters=parameters)
     ka_opt = solver.solve()
     # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
     # xdmf_filename.write(ka_opt)
+
+    import pdb
+    pdb.set_trace()
+    #0.01 3.1732047198601371e-05
+    #0.1 4.1236704512893082e-05
+    #1 1.3128814879285135e-04
 
     ## Taylor test
     # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
@@ -131,7 +134,7 @@ if __name__ == "__main__":
     ## TODO constraints
     # constraints = UFLInequalityConstraint((V/delta - rho), ai)
     problem1 = MinimizationProblem(Jhat2)
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10}
+    parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 50}
     solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     
     

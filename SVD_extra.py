@@ -149,11 +149,9 @@ def randomized_range_finder(A, size, n_iter, Size_f_rf, power_iteration_normaliz
                 Q = safe_sparse_dot(A.T, Q)
         elif power_iteration_normalizer == 'LU':
             Q, _ = linalg.lu(safe_sparse_dot(A, Q), permute_l=True)
-            # TODO: rf.hessian transpose?
             Q, _ = linalg.lu(safe_sparse_dot(A.T, Q), permute_l=True)
         elif power_iteration_normalizer == 'QR':
             Q, _ = linalg.qr(safe_sparse_dot(A, Q), mode='economic')
-            # TODO: rf.hessian transpose?
             Q, _ = linalg.qr(safe_sparse_dot(A.T, Q), mode='economic')
 
     # Sample the range of A using by linear projection of Q
