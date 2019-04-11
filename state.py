@@ -35,7 +35,7 @@ class State(object):
     def solve(self, ka=None):
         self.u, self.p = TrialFunctions(self.W)
         self.v, self.q = TestFunctions(self.W)
-        self.a = (inner( alpha(ka) * self.u, self.v) + (div(self.v)*self.p) + (div(self.u)*self.q))*dx 
+        self.a = (inner( alpha1(ka) * self.u, self.v) + (div(self.v)*self.p) + (div(self.u)*self.q))*dx 
 
         self.n1 = FacetNormal(self.disc.mesh)
         self.myds = Measure('ds', domain=self.disc.mesh, subdomain_data=self.disc.boundaries)

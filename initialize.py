@@ -67,7 +67,7 @@ def get_function_space(mesh):
     A = FunctionSpace(mesh, 'CG', 1)
     return A
 
-def alpha(ka):
+def alpha1(ka):
     return exp(ka)
 
 def get_coefficient_space(mesh):
@@ -87,8 +87,7 @@ def get_initial_coefficients(K):
         xx = x.vector()[d]
         yy = y.vector()[d]
         if 0.25 < xx < 0.75 and 0.25 < yy < 0.75:
-            k.vector()[d] = exp(0.1)
-            #k.vector()[d] = 1.
+            k.vector()[d] = 0.1
         else:
-            k.vector()[d] = exp(1.0)
+            k.vector()[d] = 1.0
     return k

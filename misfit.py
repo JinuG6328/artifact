@@ -31,8 +31,8 @@ class Misfit(object):
         self.f = Function(self.state.A)
         self.J = assemble(inner(self.f,self.f)*dx)
 
-        for i in range(1,3):
-            for j in range(1,3):
+        for i in range(1,4):
+            for j in range(1,4):
                 self.e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 9, i = i, j = j)
                 self.mid = interpolate(self.e,self.state.W.sub(1).collapse())
                 self.J_int = assemble((0.5*inner(self.w[1]-d_w[1], self.mid))*dx)
@@ -41,8 +41,8 @@ class Misfit(object):
         return self.J
 
     def make_misfit(self, d_w, ka):
-        self.controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (self.Alpha, self.power) )
-        self.ka_viz = Function(self.state.A, name="ControlVisualisation")
+        # self.controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (self.Alpha, self.power) )
+        # self.ka_viz = Function(self.state.A, name="ControlVisualisation")
 
         self.ka = ka
 

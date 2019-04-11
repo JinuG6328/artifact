@@ -77,12 +77,12 @@ if __name__ == "__main__":
     reg = Regularization(state.ka, state.A)
     
     ## Next we combined misfit and regularization to define reduced functional objective
-    objective = residual + reg.reg
+    objective = residual_red + reg.reg
     Jhat = misfit.misfit_op(objective, Control(state.ka))
 
     ## Sovling minimization problem and save the result
-    problem = MinimizationProblem(Jhat, bounds=(0.0, 5.0))
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    problem = MinimizationProblem(Jhat, bounds=(0.0, 1.0))
+    parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 50}
     solver = IPOPTSolver(problem, parameters=parameters)
     ka_opt = solver.solve()
     # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
@@ -90,9 +90,7 @@ if __name__ == "__main__":
 
     import pdb
     pdb.set_trace()
-    #0.01 3.1732047198601371e-05
-    #0.1 4.1236704512893082e-05
-    #1 1.3128814879285135e-04
+
 
     ## Taylor test
     # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
@@ -121,6 +119,7 @@ if __name__ == "__main__":
         
     ## Converting the array into function
     ka_new = dot_to_function(state.A, U, ai)
+    ka_new.vector()[:] += ka_opt.vector()[:]
     # ka_new = dot_to_function(state.A, VT.T, ai)
     # ka_new_norm = assemble(dot(ka_new,ka_new)*dx)
 
