@@ -41,8 +41,8 @@ class Misfit(object):
         return self.J
 
     def make_misfit(self, d_w, ka):
-        # self.controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (self.Alpha, self.power) )
-        # self.ka_viz = Function(self.state.A, name="ControlVisualisation")
+        self.controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (self.Alpha, self.power) )
+        self.ka_viz = Function(self.state.A, name="ControlVisualisation")
 
         self.ka = ka
 

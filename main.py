@@ -91,7 +91,6 @@ if __name__ == "__main__":
     import pdb
     pdb.set_trace()
 
-
     ## Taylor test
     # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
 
@@ -143,13 +142,21 @@ if __name__ == "__main__":
     
     # ka_opt2.vector()[:] = reject_outlier(U.dot(ka_opt1))
     ka_opt2.vector()[:] = U.dot(ka_opt1)
-    print("Norm %f", np.linalg.norm(U.dot(ka_opt1)))
+    # print("Norm %f", np.linalg.norm(U.dot(ka_opt1)))
+
+    ## prediction
+    pre_obs = prediction.obs
+    pre_state = prediction.state
+    pre_w = pre_state.solve(ka=ka_opt2)
+    import pdb
+    pdb.set_trace()
+    pre_u, pre_p = pre_w.split(deepcopy=True)
 
     firstplot = plot(ka_opt2)
-    plt.colorbar(firstplot, ticks = [-0.1, 0, 1, 10, 50])
+    plt.colorbar(firstplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])
     plt.figure()
     secondplot = plot(ka_opt)
-    plt.colorbar(secondplot, ticks = [0, 0.49, 0.5, 0.75, 1])  
+    plt.colorbar(secondplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])  
     plt.figure()
     plt.plot(Sigma)
     plt.show()
