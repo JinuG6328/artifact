@@ -268,7 +268,7 @@ def randomized_svd1(M, n_components, n_oversamples=10, n_iter='auto',
     # Change m to rf
     # import pdb
     # pdb.set_trace()
-    # M = get_matrix_1(M)
+    M = get_matrix_1(M)
     # import pdb
     # pdb.set_trace()
     #np.savetxt('M.txt', M)

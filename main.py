@@ -14,6 +14,8 @@ from sklearn.utils.extmath import svd_flip
 from pyadjoint.overloaded_function import overload_function
 
 from SVD_extra import get_matrix, safe_sparse_dot, randomized_range_finder, randomized_svd1, reject_outlier
+from ipopt_solver1 import *
+
 from covariance import PriorPrecHessian
 from initialize import *
 from discretization import Discretization
@@ -77,19 +79,17 @@ if __name__ == "__main__":
     reg = Regularization(state.ka, state.A)
     
     ## Next we combined misfit and regularization to define reduced functional objective
-    objective = residual_red + reg.reg
+    objective = residual + reg.reg
     Jhat = misfit.misfit_op(objective, Control(state.ka))
 
     ## Sovling minimization problem and save the result
     problem = MinimizationProblem(Jhat, bounds=(0.0, 1.0))
-    parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 50}
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
     solver = IPOPTSolver(problem, parameters=parameters)
+    
     ka_opt = solver.solve()
     # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
     # xdmf_filename.write(ka_opt)
-
-    import pdb
-    pdb.set_trace()
 
     ## Taylor test
     # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
@@ -118,13 +118,21 @@ if __name__ == "__main__":
         
     ## Converting the array into function
     ka_new = dot_to_function(state.A, U, ai)
-    ka_new.vector()[:] += ka_opt.vector()[:]
+    ka_new_opt = ka_new + ka_opt
+    #ka_new.vector()[:] #+= ka_opt.vector()[:]
     # ka_new = dot_to_function(state.A, VT.T, ai)
     # ka_new_norm = assemble(dot(ka_new,ka_new)*dx)
 
     ## Making_residual with full space
-    objective2 = prediction.make_misfit(obs.observed, ka_new)
-
+    residual_2 = misfit.make_misfit(obs.observed, ka_new_opt)
+    reg_2 = Regularization(ka_new_opt, state.A)
+    
+    ## Next we combined misfit and regularization to define reduced functional objective
+    #objective2 = residual_2 + reg_2.reg
+    #residual_2 = misfit.make_misfit
+    objective2 = prediction.make_misfit(obs.observed, ka_new_opt)
+    import pdb
+    pdb.set_trace()
     ## Making Jhat2
     Jhat2 = prediction.misfit_op(objective2, Control(ai))
 
@@ -133,9 +141,11 @@ if __name__ == "__main__":
     # constraints = UFLInequalityConstraint((V/delta - rho), ai)
     problem1 = MinimizationProblem(Jhat2)
     parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 50}
-    solver1 = IPOPTSolver(problem1, parameters=parameters)
+    solver1 = IPOPTSolver1(problem1, parameters=parameters, ka_opt = ka_opt, J_hat_fun = Jhat, U = U)
     ka_opt1 = solver1.solve()     
     
+    import pdb
+    pdb.set_trace()
 
     ## Save the result using existing program tool.
     ka_opt2 = ka_opt.copy(deepcopy = True)
