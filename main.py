@@ -15,6 +15,7 @@ from pyadjoint.overloaded_function import overload_function
 
 from SVD_extra import get_matrix, safe_sparse_dot, randomized_range_finder, randomized_svd1, reject_outlier
 from ipopt_solver1 import *
+from resi_const import *
 
 from covariance import PriorPrecHessian
 from initialize import *
@@ -131,21 +132,22 @@ if __name__ == "__main__":
     #objective2 = residual_2 + reg_2.reg
     #residual_2 = misfit.make_misfit
     objective2 = prediction.make_misfit(obs.observed, ka_new_opt)
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
     ## Making Jhat2
     Jhat2 = prediction.misfit_op(objective2, Control(ai))
 
     ## Solve the optimization problem
     ## TODO constraints
     # constraints = UFLInequalityConstraint((V/delta - rho), ai)
-    problem1 = MinimizationProblem(Jhat2)
+    problem1 = MinimizationProblem(Jhat2, constraints=ResidualConstraint(10, Jhat, U))
     parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 50}
     solver1 = IPOPTSolver1(problem1, parameters=parameters, ka_opt = ka_opt, J_hat_fun = Jhat, U = U)
+    # solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     
     
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
 
     ## Save the result using existing program tool.
     ka_opt2 = ka_opt.copy(deepcopy = True)
@@ -158,8 +160,8 @@ if __name__ == "__main__":
     pre_obs = prediction.obs
     pre_state = prediction.state
     pre_w = pre_state.solve(ka=ka_opt2)
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
     pre_u, pre_p = pre_w.split(deepcopy=True)
 
     firstplot = plot(ka_opt2)

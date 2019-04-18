@@ -1,4 +1,6 @@
-from __future__ import print_function
+
+from fenics import *
+from fenics_adjoint import *
 
 import numpy
 
@@ -42,14 +44,15 @@ class IPOPTSolver1(OptimizationSolver):
         
         nconstraints = 1
         def fun_g(x, user_data=None):
-            A = self.J_hat_fun.contols[0].function_space()
+            A = self.J_hat_fun.controls[0].function_space()
             a = Function(A)
             a.vector()[:] = self.U.dot(x)
             output = J_hat_fun(a)
-            return output
+            return [output]
 
         def jac_g(x, user_data=None):
-            return self.U.T.dot(self.J_hat_fun.derivative().vector()[:])
+            #return numpy.array([], dtype=float)
+            return [self.U.T.dot(self.J_hat_fun.derivative().vector()[:])]
 
         #fun_g = self.J_hat_fun.__call__
         #jac_g = partial(self.J_hat_fun.derivative, forget = False)
