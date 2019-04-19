@@ -140,10 +140,10 @@ if __name__ == "__main__":
     ## Solve the optimization problem
     ## TODO constraints
     # constraints = UFLInequalityConstraint((V/delta - rho), ai)
-    problem1 = MinimizationProblem(Jhat2, constraints=ResidualConstraint(10, Jhat, U))
+    problem1 = MinimizationProblem(Jhat2, constraints=ResidualConstraint(1, Jhat, U))
     parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 50}
-    solver1 = IPOPTSolver1(problem1, parameters=parameters, ka_opt = ka_opt, J_hat_fun = Jhat, U = U)
-    # solver1 = IPOPTSolver(problem1, parameters=parameters)
+    # solver1 = IPOPTSolver1(problem1, parameters=parameters, ka_opt = ka_opt, J_hat_fun = Jhat, U = U)
+    solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     
     
     # import pdb

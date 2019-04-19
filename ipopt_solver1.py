@@ -43,26 +43,41 @@ class IPOPTSolver1(OptimizationSolver):
         #(nconstraints, fun_g, jac_g, clb, cub) = self.__get_constraints()
         
         nconstraints = 1
+        import pdb
+        pdb.set_trace()
+
         def fun_g(x, user_data=None):
             A = self.J_hat_fun.controls[0].function_space()
             a = Function(A)
             a.vector()[:] = self.U.dot(x)
-            output = J_hat_fun(a)
-            return [output]
+            out = numpy.array(self.J_hat_fun(a), dtype=float)
+            return out
 
-        def jac_g(x, user_data=None):
-            #return numpy.array([], dtype=float)
-            return [self.U.T.dot(self.J_hat_fun.derivative().vector()[:])]
+            # The constraint Jacobian:
+            # flag = True  means 'tell me the sparsity pattern';
+            # flag = False means 'give me the damn Jacobian'.
+        def jac_g(x, flag, user_data=None):
+            j = self.U.T.dot(self.J_hat_fun.derivative().vector()[:])
+            out = numpy.array(gather(j), dtype=float)
+            return out
+
+        # array([[[ 3.24633969e-05, -3.78630416e-06, -6.84089546e-06,
+        #   2.62895485e-03,  1.41646955e-06,  1.62812795e-06,
+        #  -7.08217875e-05,  6.41516280e-05, -7.83921566e-06,
+        #   7.72132319e-05, -2.75282032e-06,  7.82976323e-06,
+        #   2.43100342e-04,  3.38299904e-04,  5.46827318e-05,
+        #   2.55449314e-05, -9.67116246e-06, -1.09586601e-05,
+        #  -4.41600820e-05, -6.09069833e-05]]])
 
         #fun_g = self.J_hat_fun.__call__
         #jac_g = partial(self.J_hat_fun.derivative, forget = False)
 
-        clb = self.J_hat_fun(self.ka_opt)*0.5 * numpy.array([0] * nconstraints)
-        cub = self.J_hat_fun(self.ka_opt)*1.5 * numpy.array([0] * nconstraints)
+        clb = numpy.array([self.J_hat_fun(self.ka_opt)*0.5] * nconstraints)
+        cub = numpy.array([self.J_hat_fun(self.ka_opt)*1.5] * nconstraints)
 
         constraints_nnz = nconstraints * ncontrols
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
         # A callback that evaluates the functional and derivative.
         J = self.rfn.__call__
         dJ = partial(self.rfn.derivative, forget=False)

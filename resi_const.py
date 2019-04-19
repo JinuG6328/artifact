@@ -17,7 +17,8 @@ class ResidualConstraint(InequalityConstraint):
             # set_local(self.tmpvec, m)
 
             # # Compute the integral of the control over the domain
-
+            # import pdb
+            # pdb.set_trace()
             # integral = self.smass.inner(self.tmpvec.vector())
             A = self.rfn.controls[0].function_space()
             a = Function(A)
@@ -27,6 +28,8 @@ class ResidualConstraint(InequalityConstraint):
 
         def jacobian(self, m):
             # import pdb
+            # pdb.set_trace()
+            # # import pdb
             # pdb.set_trace()
             interm = self.U.T.dot(self.rfn.derivative().vector()[:])
             return [interm]
