@@ -119,21 +119,14 @@ if __name__ == "__main__":
         
     ## Converting the array into function
     ka_new = dot_to_function(state.A, U, ai)
-    ka_new_opt = ka_new + ka_opt
-    #ka_new.vector()[:] #+= ka_opt.vector()[:]
-    # ka_new = dot_to_function(state.A, VT.T, ai)
-    # ka_new_norm = assemble(dot(ka_new,ka_new)*dx)
+    ka_new_opt = ka_new #+ ka_opt
 
     ## Making_residual with full space
     residual_2 = misfit.make_misfit(obs.observed, ka_new_opt)
-    reg_2 = Regularization(ka_new_opt, state.A)
     
     ## Next we combined misfit and regularization to define reduced functional objective
-    #objective2 = residual_2 + reg_2.reg
-    #residual_2 = misfit.make_misfit
     objective2 = prediction.make_misfit(obs.observed, ka_new_opt)
-    # import pdb
-    # pdb.set_trace()
+    prediction.prediction(ka_new)
     ## Making Jhat2
     Jhat2 = prediction.misfit_op(objective2, Control(ai))
 
@@ -141,7 +134,7 @@ if __name__ == "__main__":
     ## TODO constraints
     # constraints = UFLInequalityConstraint((V/delta - rho), ai)
     problem1 = MinimizationProblem(Jhat2, constraints=ResidualConstraint(1, Jhat, U))
-    parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 50}
+    parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 100}
     # solver1 = IPOPTSolver1(problem1, parameters=parameters, ka_opt = ka_opt, J_hat_fun = Jhat, U = U)
     solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     

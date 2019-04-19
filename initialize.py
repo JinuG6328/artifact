@@ -75,7 +75,7 @@ def get_coefficient_space(mesh):
     return K    
 
 def get_initial_coefficients(K):
-    mesh = K.mesh()
+    # mesh = K.mesh()
     x = interpolate(Expression("x[0]", degree = 1,), K)
     y = interpolate(Expression("x[1]", degree = 1,), K)
 
