@@ -77,6 +77,7 @@ if __name__ == "__main__":
     ## Next we dfined residual and regularization
     residual_red = misfit.make_misfit_red(obs.observed, state.ka)
     residual = misfit.make_misfit(obs.observed, state.ka)
+    residual_9pt = misfit.prediction_9pt(obs.observed, state.ka)
     reg = Regularization(state.ka, state.A)
     
     ## Next we combined misfit and regularization to define reduced functional objective
@@ -89,6 +90,8 @@ if __name__ == "__main__":
     solver = IPOPTSolver(problem, parameters=parameters)
     
     ka_opt = solver.solve()
+    import pdb
+    pdb.set_trace()
     # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
     # xdmf_filename.write(ka_opt)
 
@@ -96,7 +99,9 @@ if __name__ == "__main__":
     # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
 
     ## Making Jhat_red from misfit only 
-    Jhat_red = misfit.misfit_op(residual_red, Control(state.ka))
+    Jhat_red = misfit.misfit_op(residual_9pt, Control(state.ka))
+    # Jhat_red = misfit.misfit_op(residual, Control(state.ka))
+
 
     ## Calculating PriorPreconditionedHessian matrix of Jhat_red
     priorprehessian = PriorPrecHessian(Jhat_red, reg, state.ka)    
@@ -126,7 +131,8 @@ if __name__ == "__main__":
     
     ## Next we combined misfit and regularization to define reduced functional objective
     objective2 = prediction.make_misfit(obs.observed, ka_new_opt)
-    prediction.prediction(ka_new)
+    
+
     ## Making Jhat2
     Jhat2 = prediction.misfit_op(objective2, Control(ai))
 
@@ -134,7 +140,7 @@ if __name__ == "__main__":
     ## TODO constraints
     # constraints = UFLInequalityConstraint((V/delta - rho), ai)
     problem1 = MinimizationProblem(Jhat2, constraints=ResidualConstraint(1, Jhat, U))
-    parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 100}
+    parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 50}
     # solver1 = IPOPTSolver1(problem1, parameters=parameters, ka_opt = ka_opt, J_hat_fun = Jhat, U = U)
     solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     

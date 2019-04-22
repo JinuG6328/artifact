@@ -21,6 +21,7 @@ class Misfit(object):
         
         self.ka = None
 
+        self.disc = disc
         self.obs = Observation(disc)
         self.state = State(disc)
 
@@ -43,25 +44,54 @@ class Misfit(object):
     #         self.ka_viz.assign(ka)
     #         self.controls << self.ka_viz
     
-    def prediction(self, ka):
-        import pdb
-        pdb.set_trace()
-        K = ka.function_space()
-        v2d = K.dofmap().dofs()
+    def prediction_9pt(self, d_w, ka):
 
-        #len(v2d)=128 in n = 8
+        self.ka = ka
+        # import pdb
+        # pdb.set_trace()
+        self.K = d_w.function_space()
+        self.f = Function(self.K)
+        
+        v2d = self.K.sub(1).dofmap().dofs()
+
+        self.w = self.state.solve(ka=self.ka)
+        self.e = 0.001
+        
+        p_x = interpolate(Expression(('0','0'), degree = 1,), self.K.sub(0).collapse())
+        x = interpolate(Expression("x[0]", degree = 1,), self.K.sub(1).collapse())
+
+        p_y = interpolate(Expression(('0','0'), degree = 1,), self.K.sub(0).collapse())
+        y = interpolate(Expression("x[1]", degree = 1,), self.K.sub(1).collapse())   
+        
+        mix_x = Function(self.K)
+        assign(mix_x, [p_x, x])
+        mix_y = Function(self.K)
+        assign(mix_y, [p_y, y])
+        self.J = assemble(inner(self.f, self.f)*dx)
         for d in v2d:
             ## Todo 
             ## implementing nine point
-            xx = x.vector()[d]
-            yy = y.vector()[d]
-            if 0.25 < xx < 0.75 and 0.25 < yy < 0.75:
-                k.vector()[d] = 0.1
-            else:
-                k.vector()[d] = 1.0
+            xx = mix_x.vector()[d]
+            yy = mix_y.vector()[d]
+            if 0.25-self.e < xx < 0.25+self.e or 0.5-self.e < xx < 0.5+self.e or 0.75-self.e < xx < 0.75 + self.e:
+                if 0.25-self.e < yy < 0.25+self.e or 0.5-self.e < yy < 0.5+self.e or 0.75-self.e < yy < 0.75 + self.e:
+                    print(xx)
+                    print(yy)
+                    import pdb
+                    pdb.set_trace()
+                    #asdf, asdf1 = self.w.split(deepcopy=True)
+                    self.J += assemble(0.5*(self.w.vector()[d]-d_w.vector()[d])**2*dx(self.disc.mesh) )
+                    # k.vector()[d] = 0.1
 
-        K = FunctionSpace(mesh, 'DG', 0)
-        return
+        # K = FunctionSpace(mesh, 'DG', 0)
+        return self.J
+    def prediction_boundaries(self, ka):
+        self.n1 = FacetNormal(self.disc.mesh)
+        self.myds = Measure('ds', domain=self.disc.mesh, subdomain_data=self.disc.boundaries)
+
+        self.w = self.state.solve(ka=self.ka)
+        self.J = assemble(inner(self.w, self.w)*myds(1))
+        pass
 
     def make_misfit_red(self, d_w, ka):
         ## TODO

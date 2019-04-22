@@ -13,24 +13,12 @@ class ResidualConstraint(InequalityConstraint):
             # self.tmpvec = Function(A)
 
         def function(self, m):
-            # from pyadjoint.reduced_functional_numpy import set_local
-            # set_local(self.tmpvec, m)
-
-            # # Compute the integral of the control over the domain
-            # import pdb
-            # pdb.set_trace()
-            # integral = self.smass.inner(self.tmpvec.vector())
             A = self.rfn.controls[0].function_space()
             a = Function(A)
             a.vector()[:] = self.U.dot(m)
             return [self.V - self.rfn(a)]
-            # return [self.V - integral]
 
         def jacobian(self, m):
-            # import pdb
-            # pdb.set_trace()
-            # # import pdb
-            # pdb.set_trace()
             interm = self.U.T.dot(self.rfn.derivative().vector()[:])
             return [interm]
 
