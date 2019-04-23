@@ -44,47 +44,60 @@ class Misfit(object):
     #         self.ka_viz.assign(ka)
     #         self.controls << self.ka_viz
     
-    def prediction_9pt(self, d_w, ka):
+    def prediction_center(self, ka):
 
         self.ka = ka
         # import pdb
         # pdb.set_trace()
-        self.K = d_w.function_space()
-        self.f = Function(self.K)
+        # self.K = d_w.function_space()
+        # self.f = Function(self.K)
         
-        v2d = self.K.sub(1).dofmap().dofs()
+        # v2d = self.K.sub(1).dofmap().dofs()
 
         self.w = self.state.solve(ka=self.ka)
-        self.e = 0.001
+        # self.e = 0.001
         
-        p_x = interpolate(Expression(('0','0'), degree = 1,), self.K.sub(0).collapse())
-        x = interpolate(Expression("x[0]", degree = 1,), self.K.sub(1).collapse())
-
-        p_y = interpolate(Expression(('0','0'), degree = 1,), self.K.sub(0).collapse())
-        y = interpolate(Expression("x[1]", degree = 1,), self.K.sub(1).collapse())   
+        import pdb
+        pdb.set_trace()
         
-        mix_x = Function(self.K)
-        assign(mix_x, [p_x, x])
-        mix_y = Function(self.K)
-        assign(mix_y, [p_y, y])
-        self.J = assemble(inner(self.f, self.f)*dx)
-        for d in v2d:
-            ## Todo 
-            ## implementing nine point
-            xx = mix_x.vector()[d]
-            yy = mix_y.vector()[d]
-            if 0.25-self.e < xx < 0.25+self.e or 0.5-self.e < xx < 0.5+self.e or 0.75-self.e < xx < 0.75 + self.e:
-                if 0.25-self.e < yy < 0.25+self.e or 0.5-self.e < yy < 0.5+self.e or 0.75-self.e < yy < 0.75 + self.e:
-                    print(xx)
-                    print(yy)
-                    import pdb
-                    pdb.set_trace()
-                    #asdf, asdf1 = self.w.split(deepcopy=True)
-                    self.J += assemble(0.5*(self.w.vector()[d]-d_w.vector()[d])**2*dx(self.disc.mesh) )
-                    # k.vector()[d] = 0.1
+        x_0 = 0.5
+        y_0 = 0.8
+        sigma = 0.1
 
-        # K = FunctionSpace(mesh, 'DG', 0)
-        return self.J
+        q_expr = Expression("exp(-(0.5/sigma)*((x[0]-x_0)*(x[0]-x_0)+(x[1]-y_0)*(x[1]-y_0)))", x_0 = x_0, y_0 = y_0, sigma = sigma, degree = 3)
+        q_adjflt = assemble(q_expr*self.w[1]*dx)
+        
+        return q_adjflt
+        
+        # p_x = interpolate(Expression(('0','0'), degree = 1,), self.K.sub(0).collapse())
+        # x = interpolate(Expression("x[0]", degree = 1,), self.K.sub(1).collapse())
+
+        # p_y = interpolate(Expression(('0','0'), degree = 1,), self.K.sub(0).collapse())
+        # y = interpolate(Expression("x[1]", degree = 1,), self.K.sub(1).collapse())   
+        
+        # mix_x = Function(self.K)
+        # assign(mix_x, [p_x, x])
+        # mix_y = Function(self.K)
+        # assign(mix_y, [p_y, y])
+        # self.J = assemble(inner(self.f, self.f)*dx)
+        # for d in v2d:
+        #     ## Todo 
+        #     ## implementing nine point
+        #     xx = mix_x.vector()[d]
+        #     yy = mix_y.vector()[d]
+        #     if 0.25-self.e < xx < 0.25+self.e or 0.5-self.e < xx < 0.5+self.e or 0.75-self.e < xx < 0.75 + self.e:
+        #         if 0.25-self.e < yy < 0.25+self.e or 0.5-self.e < yy < 0.5+self.e or 0.75-self.e < yy < 0.75 + self.e:
+        #             print(xx)
+        #             print(yy)
+        #             import pdb
+        #             pdb.set_trace()
+        #             #asdf, asdf1 = self.w.split(deepcopy=True)
+        #             self.J += assemble(0.5*(self.w.vector()[d]-d_w.vector()[d])**2*dx(self.disc.mesh) )
+        #             # k.vector()[d] = 0.1
+
+        # # K = FunctionSpace(mesh, 'DG', 0)
+        # return self.J
+
     def prediction_boundaries(self, ka):
         self.n1 = FacetNormal(self.disc.mesh)
         self.myds = Measure('ds', domain=self.disc.mesh, subdomain_data=self.disc.boundaries)

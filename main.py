@@ -77,7 +77,11 @@ if __name__ == "__main__":
     ## Next we dfined residual and regularization
     residual_red = misfit.make_misfit_red(obs.observed, state.ka)
     residual = misfit.make_misfit(obs.observed, state.ka)
-    residual_9pt = misfit.prediction_9pt(obs.observed, state.ka)
+    pressure_cen = misfit.prediction_center(state.ka)
+    
+    # import pdb
+    # pdb.set_trace()
+    
     reg = Regularization(state.ka, state.A)
     
     ## Next we combined misfit and regularization to define reduced functional objective
@@ -86,12 +90,13 @@ if __name__ == "__main__":
 
     ## Sovling minimization problem and save the result
     problem = MinimizationProblem(Jhat, bounds=(0.0, 1.0))
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
     solver = IPOPTSolver(problem, parameters=parameters)
     
     ka_opt = solver.solve()
-    import pdb
-    pdb.set_trace()
+    
+    # import pdb
+    # pdb.set_trace()
     # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
     # xdmf_filename.write(ka_opt)
 
@@ -99,9 +104,8 @@ if __name__ == "__main__":
     # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
 
     ## Making Jhat_red from misfit only 
-    Jhat_red = misfit.misfit_op(residual_9pt, Control(state.ka))
-    # Jhat_red = misfit.misfit_op(residual, Control(state.ka))
-
+    # Jhat_red = misfit.misfit_op(residual_9pt, Control(state.ka))
+    Jhat_red = misfit.misfit_op(residual_red, Control(state.ka))
 
     ## Calculating PriorPreconditionedHessian matrix of Jhat_red
     priorprehessian = PriorPrecHessian(Jhat_red, reg, state.ka)    
@@ -114,6 +118,21 @@ if __name__ == "__main__":
     ##########################################################
     ## With U(VT), we can define the reduced space problem: ##
     ##########################################################
+
+    ## Making projection    
+
+    projector = np.matmul(U.T,U)
+    projector1 = np.linalg.pinv(projector)
+    projector2 = np.matmul(U, projector1)
+    projector3 = np.matmul(projector2, U.T)
+
+    sample = ka_opt.copy(deepcopy=True)
+    length_array = len(sample.vector()[:])
+    sample.vector()[:] = np.zeros(length_array)
+    sample.vector()[int(length_array/2)] = 1
+    result_osc = np.matmul(projector3, sample.vector()[:])
+    import pdb
+    pdb.set_trace()
     
     ## Making prediction object to use observations
     prediction = Misfit(args, disc, name="prediction")
