@@ -44,7 +44,7 @@ class Misfit(object):
     #         self.ka_viz.assign(ka)
     #         self.controls << self.ka_viz
     
-    def prediction_center(self, ka):
+    def prediction_center(self, ka, x_0 = 0.5, y_0 = 0.8):
 
         self.ka = ka
         # import pdb
@@ -57,11 +57,8 @@ class Misfit(object):
         self.w = self.state.solve(ka=self.ka)
         # self.e = 0.001
         
-        import pdb
-        pdb.set_trace()
-        
-        x_0 = 0.5
-        y_0 = 0.8
+        # x_0 = 0.1
+        # y_0 = 0.8
         sigma = 0.1
 
         q_expr = Expression("exp(-(0.5/sigma)*((x[0]-x_0)*(x[0]-x_0)+(x[1]-y_0)*(x[1]-y_0)))", x_0 = x_0, y_0 = y_0, sigma = sigma, degree = 3)

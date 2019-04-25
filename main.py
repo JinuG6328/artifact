@@ -74,68 +74,52 @@ if __name__ == "__main__":
     else:
         obs.get_observed(state.W)
      
+    #########################################################################
+    ## Inverse problem with full space and full observation #################
+    #########################################################################
+
     ## Next we dfined residual and regularization
     residual_red = misfit.make_misfit_red(obs.observed, state.ka)
     residual = misfit.make_misfit(obs.observed, state.ka)
-    pressure_cen = misfit.prediction_center(state.ka)
-    
-    # import pdb
-    # pdb.set_trace()
-    
     reg = Regularization(state.ka, state.A)
     
     ## Next we combined misfit and regularization to define reduced functional objective
     objective = residual + reg.reg
     Jhat = misfit.misfit_op(objective, Control(state.ka))
 
-    ## Sovling minimization problem and save the result
-    problem = MinimizationProblem(Jhat, bounds=(0.0, 1.0))
+    # Sovling minimization problem and save the result
+    problem = MinimizationProblem(Jhat)
     parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
-    solver = IPOPTSolver(problem, parameters=parameters)
-    
+    solver = IPOPTSolver(problem, parameters=parameters)   
     ka_opt = solver.solve()
     
-    # import pdb
-    # pdb.set_trace()
     # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
     # xdmf_filename.write(ka_opt)
 
     ## Taylor test
     # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
 
-    ## Making Jhat_red from misfit only 
-    # Jhat_red = misfit.misfit_op(residual_9pt, Control(state.ka))
+    #########################################################################
+    ## 9 components observation and Randomized SVD ##########################
+    #########################################################################
+
     Jhat_red = misfit.misfit_op(residual_red, Control(state.ka))
 
     ## Calculating PriorPreconditionedHessian matrix of Jhat_red
     priorprehessian = PriorPrecHessian(Jhat_red, reg, state.ka)    
 
     ## Number of components, number of iteration, and randomized SVD
-    n_components = 20#100
-    n_iter = 20#00   
+    n_components = 20
+    n_iter = 20   
     U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
 
-    ##########################################################
-    ## With U(VT), we can define the reduced space problem: ##
-    ##########################################################
+    #########################################################################
+    ## With U(VT), we can define the reduced space problem: #################
+    ## Inverse problem with reduced space and full observation ##############
+    #########################################################################
 
-    ## Making projection    
-
-    projector = np.matmul(U.T,U)
-    projector1 = np.linalg.pinv(projector)
-    projector2 = np.matmul(U, projector1)
-    projector3 = np.matmul(projector2, U.T)
-
-    sample = ka_opt.copy(deepcopy=True)
-    length_array = len(sample.vector()[:])
-    sample.vector()[:] = np.zeros(length_array)
-    sample.vector()[int(length_array/2)] = 1
-    result_osc = np.matmul(projector3, sample.vector()[:])
-    import pdb
-    pdb.set_trace()
-    
     ## Making prediction object to use observations
-    prediction = Misfit(args, disc, name="prediction")
+    misfit_red = Misfit(args, disc, name="misfit_reduced_space")
 
     ## Initializing the array to optimize
     intermediate = np.random.rand(n_components)
@@ -143,29 +127,77 @@ if __name__ == "__main__":
         
     ## Converting the array into function
     ka_new = dot_to_function(state.A, U, ai)
-    ka_new_opt = ka_new #+ ka_opt
-
-    ## Making_residual with full space
-    residual_2 = misfit.make_misfit(obs.observed, ka_new_opt)
+    ka_new_opt = ka_new + ka_opt
     
     ## Next we combined misfit and regularization to define reduced functional objective
-    objective2 = prediction.make_misfit(obs.observed, ka_new_opt)
+    objective2 = misfit_red.make_misfit(obs.observed, ka_new_opt)
     
-
     ## Making Jhat2
-    Jhat2 = prediction.misfit_op(objective2, Control(ai))
+    Jhat2 = misfit_red.misfit_op(objective2, Control(ai))
 
     ## Solve the optimization problem
-    ## TODO constraints
-    # constraints = UFLInequalityConstraint((V/delta - rho), ai)
     problem1 = MinimizationProblem(Jhat2, constraints=ResidualConstraint(1, Jhat, U))
-    parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 50}
-    # solver1 = IPOPTSolver1(problem1, parameters=parameters, ka_opt = ka_opt, J_hat_fun = Jhat, U = U)
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
     solver1 = IPOPTSolver(problem1, parameters=parameters)
     ka_opt1 = solver1.solve()     
     
-    # import pdb
-    # pdb.set_trace()
+    #########################################################################
+    ## Finding the range of the pressure at specific point with full space###
+    #########################################################################
+
+    ## Pressure at the 0.5, 0.8    
+    prediction = Misfit(args, disc, name="misfit_reduced_space")
+    pressure_cen = prediction.prediction_center(state.ka)
+    Jhat_cen = prediction.misfit_op(pressure_cen, Control(state.ka))
+
+    problem_pred_low = MinimizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat))
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    solver_pred_low = IPOPTSolver(problem_pred_low, parameters=parameters)
+    ka_pred_low = solver_pred_low.solve()
+
+    problem_pred_up = MaximizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat))
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    solver_pred_up = IPOPTSolver(problem_pred_up, parameters=parameters)
+    ka_pred_up = solver_pred_up.solve()
+
+    prediction_upper_bound = Jhat_cen(ka_pred_up)
+    prediction_lower_bound = Jhat_cen(ka_pred_low)
+    
+    import pdb
+    pdb.set_trace()
+
+    #########################################################################
+    ## Finding the range of the pressure at specific point ##################
+    ## With reduced space ###################################################
+    #########################################################################
+
+    intermediate = np.random.rand(n_components)
+    random_array = Ndarray(intermediate.shape, buffer=intermediate)
+        
+    ## Converting the array into function
+    ka_new_red = dot_to_function(state.A, U, random_array)
+    ka_new_opt_red = ka_new_red + ka_opt
+    pressure_cen = prediction.prediction_center(ka_new_opt_red)
+    Jhat_cen_red = prediction.misfit_op(pressure_cen, Control(random_array))
+
+    problem_pred_low_red = MinimizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1, Jhat2, U))
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    solver_pred_low_red = IPOPTSolver(problem_pred_low_red, parameters=parameters)
+    ka_pred_low_red = solver_pred_low_red.solve()
+
+    problem_pred_up_red = MaximizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1, Jhat2, U))
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    solver_pred_up_red = IPOPTSolver(problem_pred_up_red, parameters=parameters)
+    ka_pred_up_red = solver_pred_up_red.solve()
+
+    prediction_upper_bound = Jhat_cen_red(ka_pred_up_red)
+    prediction_lower_bound = Jhat_cen_red(ka_pred_low_red)
+
+
+
+    import pdb
+    pdb.set_trace()
+
 
     ## Save the result using existing program tool.
     ka_opt2 = ka_opt.copy(deepcopy = True)
