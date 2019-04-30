@@ -148,23 +148,25 @@ if __name__ == "__main__":
     ## Pressure at the 0.5, 0.8    
     prediction = Misfit(args, disc, name="misfit_reduced_space")
     pressure_cen = prediction.prediction_center(state.ka)
+    # import pdb
+    # pdb.set_trace()
     Jhat_cen = prediction.misfit_op(pressure_cen, Control(state.ka))
 
     problem_pred_low = MinimizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat))
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
     solver_pred_low = IPOPTSolver(problem_pred_low, parameters=parameters)
     ka_pred_low = solver_pred_low.solve()
 
     problem_pred_up = MaximizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat))
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
     solver_pred_up = IPOPTSolver(problem_pred_up, parameters=parameters)
     ka_pred_up = solver_pred_up.solve()
 
     prediction_upper_bound = Jhat_cen(ka_pred_up)
     prediction_lower_bound = Jhat_cen(ka_pred_low)
     
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
 
     #########################################################################
     ## Finding the range of the pressure at specific point ##################
@@ -181,20 +183,22 @@ if __name__ == "__main__":
     Jhat_cen_red = prediction.misfit_op(pressure_cen, Control(random_array))
 
     problem_pred_low_red = MinimizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1, Jhat2, U))
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
     solver_pred_low_red = IPOPTSolver(problem_pred_low_red, parameters=parameters)
     ka_pred_low_red = solver_pred_low_red.solve()
 
     problem_pred_up_red = MaximizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1, Jhat2, U))
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
     solver_pred_up_red = IPOPTSolver(problem_pred_up_red, parameters=parameters)
     ka_pred_up_red = solver_pred_up_red.solve()
 
-    prediction_upper_bound = Jhat_cen_red(ka_pred_up_red)
-    prediction_lower_bound = Jhat_cen_red(ka_pred_low_red)
+    prediction_upper_bound_red = Jhat_cen_red(ka_pred_up_red)
+    prediction_lower_bound_red = Jhat_cen_red(ka_pred_low_red)
 
-
-
+    print(prediction_upper_bound)
+    print(prediction_lower_bound)
+    print(prediction_upper_bound_red)
+    print(prediction_lower_bound_red)
     import pdb
     pdb.set_trace()
 
@@ -203,6 +207,7 @@ if __name__ == "__main__":
     ka_opt2 = ka_opt.copy(deepcopy = True)
     
     # ka_opt2.vector()[:] = reject_outlier(U.dot(ka_opt1))
+    #ka_opt2.vector()[:] = U.dot(ka_opt1)
     ka_opt2.vector()[:] = U.dot(ka_opt1)
     # print("Norm %f", np.linalg.norm(U.dot(ka_opt1)))
 
