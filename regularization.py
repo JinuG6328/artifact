@@ -5,17 +5,21 @@ import ufl
 from initialize import *
 from discretization import Discretization
 from state import *
-from SVD import *
+# from SVD import *
 import numpy as np
 
 class Regularization(object):   
-    def __init__(self, k, Functionspace, alpha = 0.1, power = 1.0):
-        self.Alpha = alpha
-        self.power = power
+    def __init__(self, k, Functionspace, namespace):
+        self.Alpha = namespace.regularization_alpha
+        self.power = namespace.regularization_degree
         self.Functionspace = Functionspace
 
         self.reg_form = self.Alpha*(np.power(inner(grad(k),grad(k))+0.0001,self.power))*dx
         self.reg = assemble(self.reg_form) # float / adjointfloat (depending whether we're taping)
+
+    def add_args(parser):
+        parser.add_argument("-rd", "--regularization-degree", type=int, default=1, help="degree of regularization term")
+        parser.add_argument("-ra", "--regularization-alpha", type=int, default=0.1, help="alpha value of regularization term")
 
     def compute_hessian(self, k):
 
@@ -32,3 +36,11 @@ class Regularization(object):
         mat = assemble(hess_form)
                 
         return mat
+
+    def __call__(self, input_):
+        if isinstance(input_, Function):
+            return self.reg
+        elif isinstance(input_, tuple):
+            return self.reg
+
+

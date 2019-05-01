@@ -35,21 +35,18 @@ dot_to_function = overload_function(dot_to_function, UpdatedBlock)
 
 ## We can change the setting on the command line
 parser = argparse.ArgumentParser()
-parser.add_argument("-f", "--forward", action="store_true", help="solve the forward problem")
-parser.add_argument("-i", "--inverse", action="store_true", help="solve the inverse problem")
 parser.add_argument("-o", "--observation", action="store_true", help="make the observation")
 parser.add_argument("-r", "--regularization", type=int, default=0, help="power of regularization term ")
-parser.add_argument("-nc", "--number_of_components", type=int, default=10, help="number of components in Truncated SVD")
+parser.add_argument("-nc", "--number_of_components", type=int, default=20, help="number of components in Truncated SVD")
+parser.add_argument("-ni", "--number_of_iterations", type=int, default=20, help="number of power iterations in Truncated SVD")
 
 if __name__ == "__main__":
-
-    # set_log_level(16)
-    
-    tape = get_working_tape()
-   
+ 
     ## We can change the settings in direcretization and   
     Discretization.add_args(parser)   
     Observation.add_args(parser)
+    Regularization.add_args(parser)
+    Misfit.add_args(parser)
   
     ## Getting input values
     args = parser.parse_args()
@@ -58,6 +55,7 @@ if __name__ == "__main__":
     disc = Discretization(args)
     
     ## Next we defined the Misifit using discretization.
+    # Want a flag to say which original inverse problem to run, save that information in misfit
     misfit = Misfit(args, disc, name="original")
     
     ## Next we got the state variables and observation from the misfit.
@@ -78,13 +76,13 @@ if __name__ == "__main__":
     ## Inverse problem with full space and full observation #################
     #########################################################################
 
-    ## Next we dfined residual and regularization
-    residual_red = misfit.make_misfit_red(obs.observed, state.ka)
-    residual = misfit.make_misfit(obs.observed, state.ka)
-    reg = Regularization(state.ka, state.A)
-    
+    ## Next we dfined regularization
+    reg = Regularization(state.ka, state.A, args)
+    import pdb
+    pdb.set_trace()
     ## Next we combined misfit and regularization to define reduced functional objective
-    objective = residual + reg.reg
+    objective = misfit(state.ka, obs.observed) + reg(state.ka)
+    # objective = misfit(ka) + reg(ka)
     Jhat = misfit.misfit_op(objective, Control(state.ka))
 
     # Sovling minimization problem and save the result
@@ -109,8 +107,8 @@ if __name__ == "__main__":
     priorprehessian = PriorPrecHessian(Jhat_red, reg, state.ka)    
 
     ## Number of components, number of iteration, and randomized SVD
-    n_components = 20
-    n_iter = 20   
+    n_components = args.number_of_components
+    n_iter = args.number_of_iterations
     U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
 
     #########################################################################

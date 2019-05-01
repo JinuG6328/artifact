@@ -84,7 +84,7 @@ def get_initial_coefficients(K):
 		xx = x.vector()[d]
 		yy = y.vector()[d]
 		if 0.25 < xx < 0.75 and 0.25 < yy < 0.75:
-			k.vector()[d] = 0.01
+			k.vector()[d] = 0.01.
 		else:
 			k.vector()[d] = 1.
 	return k
