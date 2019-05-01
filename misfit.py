@@ -21,6 +21,7 @@ class Misfit(object):
         self.Alpha = 0.0
         self.n = namespace.num_components_misfit
         self.full = namespace.misfit_full_space
+        self.name = name
         
         self.ka = None
 
@@ -30,6 +31,7 @@ class Misfit(object):
 
         # Observation
         self.d_w = Function(self.state.W)
+
         if self.obs.observed == None:
             pass
         else:
@@ -90,18 +92,19 @@ class Misfit(object):
         self.J = assemble(0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])*dx )
         return self.J
         
-    def misfit_op(self, J, m):
-        self.Jhat = ReducedFunctional(J, m)
-        self.hello = compute_gradient(self.Jhat.functional, self.Jhat.controls[0])
-        return self.Jhat
 
-    def __call__(self, ka, w):
+
+    def __call__(self, ka, w=None):
         ''' we want this to return the misfit between the observation process applied to w and the observed values '''
-        if self.full:
-            return self.make_misfit_red(w,ka)
+        if w: 
+            if self.full:
+                return self.make_misfit_red(w,ka)
+            else:
+                return self.make_misfit(w,ka)
         else:
-            return self.make_misfit(w,ka)
-        # ...
-        pass
-
+            return self.prediction_center(ka)
     
+def ReducedFunctional_(J, m):
+    Jhat = ReducedFunctional(J, m)
+    hello = compute_gradient(Jhat.functional, Jhat.controls[0])
+    return Jhat
