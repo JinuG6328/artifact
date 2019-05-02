@@ -16,7 +16,7 @@ class Observation(object):
         self.name = name
         self.W = disc.parameter_space
         self.D = disc.observation_space
-        self.observed = None     # state_obs = State(disc)
+        self.observed = None
         self.noise = args.obs_noise
         self.obs_write_file = args.obs_write_file
         self.obs_read_file = args.obs_read_file
@@ -56,9 +56,10 @@ class Observation(object):
         if noise is None:
             noise = self.noise
 
-        d = d_w.copy()
-        size_d_n = d_w.vector().size()
-        d.vector()[:] += np.random.normal(0, noise, size_d_n)
+        with get_working_tape().name_scope(self.name + "_observed"):
+            d = d_w.copy(deepcopy=True)
+            size_d_n = d_w.vector().size()
+            d.vector()[:] += np.random.normal(0, noise, size_d_n)
         self.observed = d
         
         if self.obs_write_file:
