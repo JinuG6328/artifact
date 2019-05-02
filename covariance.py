@@ -9,11 +9,9 @@ import ufl
 class PriorPrecHessian():
     def __init__(self, reduced_functional, regularization, ka, transpose=False, p_A=None):
         self._rf = reduced_functional
-        self._reg = regularization
-        self.ka = ka
         self.transpose = transpose
         if p_A is None:
-            L = regularization.compute_hessian(self.ka)
+            L = regularization.compute_hessian(ka)
             A = L.array()
             self.p_A = np.linalg.pinv(A)
         else:
@@ -26,9 +24,9 @@ class PriorPrecHessian():
     
     def dot(self, b): 
         p_A = self.p_A
-        z = self.ka.copy(deepcopy=True)
+        z = b.copy(deepcopy=True)
         if self.transpose:
-            z1 = self.ka.copy(deepcopy=True)
+            z1 = z.copy(deepcopy=True)
             z1.vector()[:] = p_A.dot(b.vector()[:])
             z.vector()[:] = self._rf.hessian(z1).vector()[:]
             return z
