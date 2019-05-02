@@ -34,8 +34,9 @@ class Misfit(object):
             with stop_annotating():
                 ka = self.state.default_parameters()
                 w = self.state.solve(ka = ka)
-                self.obs.set_observed(self.obs.apply(w))
-                self.d_w = self.obs.get_observed()
+                d_w = self.obs.apply(w)
+            self.obs.set_observed(d_w)
+            self.d_w = self.obs.get_observed()
 
 
     def add_args(parser):
@@ -43,25 +44,6 @@ class Misfit(object):
         parser.add_argument("-nt", "--num_components_misfit", type=int, default=9, help="number of compoents in misfit (4, 9, 16, 25, ...))")
 
     
-    def prediction_center(self, ka, x_0 = 0.5, y_0 = 0.8):
-        w = self.state.solve(ka=ka)
-        
-        sigma = 0.1
-        q_expr = Expression("exp(-(0.5/sigma)*((x[0]-x_0)*(x[0]-x_0)+(x[1]-y_0)*(x[1]-y_0)))", x_0 = x_0, y_0 = y_0, sigma = sigma, degree = 3)
-        q_adjflt = assemble(q_expr*w[1]*dx)
-    
-        return q_adjflt
-
-
-    def prediction_boundaries(self, ka):
-        n1 = FacetNormal(self.disc.mesh)
-        myds = Measure('ds', domain=self.disc.mesh, subdomain_data=self.disc.boundaries)
-
-        w = self.state.solve(ka=ka)
-        J = assemble(inner(w, w)*myds(1))
-        return J
-
-
     def make_misfit_red(self, d_w, ka):
         w = self.state.solve(ka=ka)
         w = self.obs.apply(w)
