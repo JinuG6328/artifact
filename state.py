@@ -23,8 +23,13 @@ class State(object):
             self.ka = self.default_parameters()
         n1 = FacetNormal(self.disc.mesh)
         myds = Measure('ds', domain=self.disc.mesh, subdomain_data=self.disc.boundaries)
-        L1 = dot(v,n1)*Constant(-1.)*myds(1)
-        L2 = dot(v,n1)*Constant(1.)*myds(2)
+        with get_working_tape().name_scope(self.name + "_coefficients"):
+            outflux = Constant(-1.)
+            outflux.assign(outflux)
+            influx = Constant(1.)
+            influx.assign(influx)
+        L1 = dot(v,n1)*outflux*myds(1)
+        L2 = dot(v,n1)*influx*myds(2)
         self.form = (inner( alpha1(self.ka) * u, v) + (div(v)*p) + (div(u)*q))*dx - (L1 + L2)
         what = TrialFunction(self.W)
         self.Jform = derivative(self.form, self.w, what)
@@ -50,9 +55,9 @@ class State(object):
     def solve(self, ka=None, w=None):
 
         if w is None:
-            w = self.w
+            w = self.w.copy()
         if ka is None:
-            ka = self.ka
+            ka = self.ka.copy()
         new_form = ufl.replace(self.form, { self.ka: ka, self.w: w })
         new_Jform = ufl.replace(self.Jform, { self.ka: ka, self.w: w })
         with get_working_tape().name_scope(self.name + "_solve"):
