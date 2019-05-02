@@ -38,6 +38,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--observation", action="store_true", help="make the observation")
 parser.add_argument("-r", "--regularization", type=int, default=0, help="power of regularization term ")
 parser.add_argument("-nc", "--number_of_components", type=int, default=20, help="number of components in Truncated SVD")
+parser.add_argument("-i", "--inverse_problem", action="store_true", help="check the inverse problem result with 9 components")
+parser.add_argument("-p", "--prediction", action="store_true", help="check the pressure boundary of specific point")
 parser.add_argument("-ni", "--number_of_iterations", type=int, default=20, help="number of power iterations in Truncated SVD")
 parser.add_argument("-nm", "--number_of_iterations_for_model", type=int, default=50, help="number of iterations for optimization")
 parser.add_argument("-nb", "--number_of_iterations_for_boundary", type=int, default=30, help="number of iterations for getting pressure boundary")
@@ -139,92 +141,88 @@ if __name__ == "__main__":
     problem1 = MinimizationProblem(Jhat2, constraints=ResidualConstraint(1, Jhat, U))
     parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": iters}
     solver1 = IPOPTSolver(problem1, parameters=parameters)
-    ka_opt1 = solver1.solve()     
     
-    switch = args.reduced_boundary
-    if switch == False:
-    #########################################################################
-    ## Finding the range of the pressure at specific point with full space###
-    #########################################################################
-        n_iters = args.number_of_iterations_for_boundary
+    if args.inverse_problem:
+        ka_opt1 = solver1.solve()     
+        
+        ka_opt2 = ka_opt.copy(deepcopy = True)
+        ka_opt2.vector()[:] = U.dot(ka_opt1)
+        
+        firstplot = plot(ka_opt2)
+        plt.colorbar(firstplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])
+        plt.figure()
+        secondplot = plot(ka_opt)
+        plt.colorbar(secondplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])  
+        plt.figure()
+        plt.plot(Sigma)
+        plt.show()
 
-        ## Pressure at the 0.5, 0.8    
+    if args.prediction:
+        switch = args.reduced_boundary
         prediction = Misfit(args, disc, name="prediction")
-        pressure_cen = prediction(state.ka)
-        Jhat_cen = ReducedFunctional_(pressure_cen, Control(state.ka))
+        if switch == False:
+        #########################################################################
+        ## Finding the range of the pressure at specific point with full space###
+        #########################################################################
+            n_iters = args.number_of_iterations_for_boundary
 
-        problem_pred_low = MinimizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat))
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": n_iters_f}
-        solver_pred_low = IPOPTSolver(problem_pred_low, parameters=parameters)
-        ka_pred_low = solver_pred_low.solve()
-
-        problem_pred_up = MaximizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat))
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": n_iters_f}
-        solver_pred_up = IPOPTSolver(problem_pred_up, parameters=parameters)
-        ka_pred_up = solver_pred_up.solve()
-
-        prediction_upper_bound = Jhat_cen(ka_pred_up)
-        prediction_lower_bound = Jhat_cen(ka_pred_low)
-
-
-    #########################################################################
-    ## Finding the range of the pressure at specific point ##################
-    ## With reduced space ###################################################
-    #########################################################################
-    else:
-        n_iters = args.number_of_iterations_for_boundary
-
-        intermediate = np.random.rand(n_components)
-        random_array = Ndarray(intermediate.shape, buffer=intermediate)
+            ## Pressure at the 0.5, 0.8    
             
-        ## Converting the array into function
-        ka_new_red = dot_to_function(state.A, U, random_array)
-        ka_new_opt_red = ka_new_red + ka_opt
-        pressure_cen = prediction(ka_new_opt_red)
-        Jhat_cen_red = ReducedFunctional_(pressure_cen, Control(random_array))
+            pressure_cen = prediction(state.ka)
+            Jhat_cen = ReducedFunctional_(pressure_cen, Control(state.ka))
 
-        problem_pred_low_red = MinimizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1, Jhat2, U))
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
-        solver_pred_low_red = IPOPTSolver(problem_pred_low_red, parameters=parameters)
-        ka_pred_low_red = solver_pred_low_red.solve()
+            problem_pred_low = MinimizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat))
+            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": n_iters_f}
+            solver_pred_low = IPOPTSolver(problem_pred_low, parameters=parameters)
+            ka_pred_low = solver_pred_low.solve()
 
-        problem_pred_up_red = MaximizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1, Jhat2, U))
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
-        solver_pred_up_red = IPOPTSolver(problem_pred_up_red, parameters=parameters)
-        ka_pred_up_red = solver_pred_up_red.solve()
+            problem_pred_up = MaximizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat))
+            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": n_iters_f}
+            solver_pred_up = IPOPTSolver(problem_pred_up, parameters=parameters)
+            ka_pred_up = solver_pred_up.solve()
 
-        prediction_upper_bound = Jhat_cen_red(ka_pred_up_red)
-        prediction_lower_bound = Jhat_cen_red(ka_pred_low_red)
+            prediction_upper_bound = Jhat_cen(ka_pred_up)
+            prediction_lower_bound = Jhat_cen(ka_pred_low)
 
-    print(prediction_upper_bound)
-    print(prediction_lower_bound)
-    # print(prediction_upper_bound_red)
-    # print(prediction_lower_bound_red)
+
+        #########################################################################
+        ## Finding the range of the pressure at specific point ##################
+        ## With reduced space ###################################################
+        #########################################################################
+        else:
+            n_iters = args.number_of_iterations_for_boundary
+
+            intermediate = np.random.rand(n_components)
+            random_array = Ndarray(intermediate.shape, buffer=intermediate)
+                
+            ## Converting the array into function
+            ka_new_red = dot_to_function(state.A, U, random_array)
+            ka_new_opt_red = ka_new_red + ka_opt
+            pressure_cen = prediction(ka_new_opt_red)
+            Jhat_cen_red = ReducedFunctional_(pressure_cen, Control(random_array))
+
+            problem_pred_low_red = MinimizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1, Jhat2, U))
+            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
+            solver_pred_low_red = IPOPTSolver(problem_pred_low_red, parameters=parameters)
+            ka_pred_low_red = solver_pred_low_red.solve()
+
+            problem_pred_up_red = MaximizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1, Jhat2, U))
+            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
+            solver_pred_up_red = IPOPTSolver(problem_pred_up_red, parameters=parameters)
+            ka_pred_up_red = solver_pred_up_red.solve()
+
+            prediction_upper_bound = Jhat_cen_red(ka_pred_up_red)
+            prediction_lower_bound = Jhat_cen_red(ka_pred_low_red)
+
+        print(prediction_upper_bound)
+        print(prediction_lower_bound)
+        # print(prediction_upper_bound_red)
+        # print(prediction_lower_bound_red)
 
     ## Save the result using existing program tool.
-    ka_opt2 = ka_opt.copy(deepcopy = True)
+
+
     
-    # ka_opt2.vector()[:] = reject_outlier(U.dot(ka_opt1))
-    #ka_opt2.vector()[:] = U.dot(ka_opt1)
-    ka_opt2.vector()[:] = U.dot(ka_opt1)
-    # print("Norm %f", np.linalg.norm(U.dot(ka_opt1)))
-
-    ## prediction
-    pre_obs = prediction.obs
-    pre_state = prediction.state
-    pre_w = pre_state.solve(ka=ka_opt2)
-    # import pdb
-    # pdb.set_trace()
-    pre_u, pre_p = pre_w.split(deepcopy=True)
-
-    firstplot = plot(ka_opt2)
-    plt.colorbar(firstplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])
-    plt.figure()
-    secondplot = plot(ka_opt)
-    plt.colorbar(secondplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])  
-    plt.figure()
-    plt.plot(Sigma)
-    plt.show()
     import pdb
     pdb.set_trace()
     #np.savetxt('Sigma.txt', Sigma)
