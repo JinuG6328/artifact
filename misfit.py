@@ -1,10 +1,10 @@
 from fenics import *
 from fenics_adjoint import *
+from pyadjoint.tape import stop_annotating
 
-from initialize import *
 from discretization import Discretization
-from state import *
-from observation import *
+from state import State
+from observation import Observation
 # from SVD import *
 
 
@@ -12,32 +12,30 @@ import matplotlib.pyplot as plt
 
 class Misfit(object):
 
-    def __init__(self, namespace, disc, name = None):
+    def __init__(self, args, disc, obs=None, state=None, name = None):
 
-        self.hello = None
-        self.n_components = 3
-        self.n_iter = 3
-        self.power = 1.
-        self.Alpha = 0.0
-        self.n = namespace.num_components_misfit
-        self.full = namespace.misfit_full_space
+        self.n = args.num_components_misfit
+        self.full = args.misfit_full_space
         
-        self.ka = None
-
         self.disc = disc
-        self.obs = Observation(disc)
-        self.state = State(disc)
+        if obs is None:
+            self.obs = Observation(args, disc)
+        else:
+            self.obs = obs
+        if state is None:
+            self.state = State(args, disc)
+        else:
+            self.state = state
 
         # Observation
-        self.d_w = Function(self.state.W)
-        if self.obs.observed == None:
-            pass
-        else:
-            input_file = HDF5File(disc.mesh.mpi_comm(), "w.h5", "r")
-            input_file.read(self.d_w, "Mixed")
-            input_file.close()
+        self.d_w = self.obs.get_observed()
+        if self.d_w is None:
+            with stop_annotating():
+                ka = self.state.default_parameters()
+                w = self.state.solve(ka = ka)
+                self.obs.set_observed(self.obs.apply(w))
+                self.d_w = self.obs.get_observed()
 
-        print("Misfit works")
 
     def add_args(parser):
         parser.add_argument("-f", "--misfit_full_space", action="store_false", help="make misfit using full space")
@@ -45,63 +43,61 @@ class Misfit(object):
 
     
     def prediction_center(self, ka, x_0 = 0.5, y_0 = 0.8):
-
-        self.ka = ka
-        self.w = self.state.solve(ka=self.ka)
+        w = self.state.solve(ka=ka)
         
         sigma = 0.1
         q_expr = Expression("exp(-(0.5/sigma)*((x[0]-x_0)*(x[0]-x_0)+(x[1]-y_0)*(x[1]-y_0)))", x_0 = x_0, y_0 = y_0, sigma = sigma, degree = 3)
-        q_adjflt = assemble(q_expr*self.w[1]*dx)
+        q_adjflt = assemble(q_expr*w[1]*dx)
     
         return q_adjflt
 
-    def prediction_boundaries(self, ka):
-        self.n1 = FacetNormal(self.disc.mesh)
-        self.myds = Measure('ds', domain=self.disc.mesh, subdomain_data=self.disc.boundaries)
 
-        self.w = self.state.solve(ka=self.ka)
-        self.J = assemble(inner(self.w, self.w)*myds(1))
-        pass
+    def prediction_boundaries(self, ka):
+        n1 = FacetNormal(self.disc.mesh)
+        myds = Measure('ds', domain=self.disc.mesh, subdomain_data=self.disc.boundaries)
+
+        w = self.state.solve(ka=ka)
+        J = assemble(inner(w, w)*myds(1))
+        return J
+
 
     def make_misfit_red(self, d_w, ka):
-        
-
-        self.ka = ka
-
-        self.w = self.state.solve(ka=self.ka)
-        self.f = Function(self.state.A)
-        self.J = assemble(inner(self.f,self.f)*dx)
+        w = self.state.solve(ka=ka)
+        w = self.obs.apply(w)
+        J = 0.
         l = int(sqrt(self.n))+1
         for i in range(1,l):
             for j in range(1,l):
-                self.e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 9, i = i, j = j)
-                self.mid = interpolate(self.e,self.state.W.sub(1).collapse())
-                self.J_int = assemble((0.5*inner(self.w[1]-d_w[1], self.mid))*dx)
-                self.J_int_2 = self.J_int*self.J_int
-                self.J += self.J_int_2
-        return self.J
+                e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 9, i = i, j = j)
+                mid = interpolate(e,self.state.W.sub(1).collapse())
+                J_int = assemble((0.5*inner(w[1]-d_w[1], mid))*dx)
+                J_int_2 = J_int*J_int
+                J += J_int_2
+        return J
+
 
     def make_misfit(self, d_w, ka):
-        # self.controls = File("output/control_iterations_guess_Alpha(%f)_p(%f).pvd" % (self.Alpha, self.power) )
-        # self.ka_viz = Function(self.state.A, name="ControlVisualisation")
-        self.ka = ka
-
-        self.w = self.state.solve(ka=self.ka)
-        self.J = assemble(0.5*inner(self.w[1]-d_w[1], self.w[1]-d_w[1])*dx )
-        return self.J
+        w = self.state.solve(ka=ka)
+        w = self.obs.apply(w)
+        J = assemble(0.5*inner(w[1]-d_w[1], w[1]-d_w[1])*dx )
+        return J
         
-    def misfit_op(self, J, m):
-        self.Jhat = ReducedFunctional(J, m)
-        self.hello = compute_gradient(self.Jhat.functional, self.Jhat.controls[0])
-        return self.Jhat
 
-    def __call__(self, ka, w):
+    def misfit_op(self, J, m):
+        import pdb
+        pdb.set_trace()
+        Jhat = ReducedFunctional(J, m)
+        compute_gradient(Jhat.functional, Jhat.controls[0])
+        return Jhat
+
+
+    def __call__(self, ka, w_obs=None):
         ''' we want this to return the misfit between the observation process applied to w and the observed values '''
+        if not w_obs:
+            w_obs = self.d_w
         if self.full:
-            return self.make_misfit_red(w,ka)
+            return self.make_misfit_red(w_obs,ka)
         else:
-            return self.make_misfit(w,ka)
-        # ...
-        pass
+            return self.make_misfit(w_obs,ka)
 
     

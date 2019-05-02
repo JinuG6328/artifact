@@ -46,13 +46,13 @@ def Inverse():
 	mesh, boundaries = get_mesh(Size)
 	W, bcs = get_state_space(mesh, boundaries)
 	w = get_state_variable(W)
-	A = get_function_space(mesh)
+	A = get_parameter_space(mesh)
 	V = Constant(0.5)
 	Alpha = Constant(0.0)
 	power = 1.
 
 	mesh1 = UnitSquareMesh(8,8)
-	A1 = get_function_space(mesh1)
+	A1 = get_parameter_space(mesh1)
 	F1 = Function(A1)
 	
 	ka = interpolate(V, A) # initial guess.

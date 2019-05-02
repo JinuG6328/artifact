@@ -40,13 +40,9 @@ def get_mesh(N):
 
 def get_state_space(mesh, boundaries=None):
 
-    #setting two variable
-    # import pdb
-    # pdb.set_trace()
     V = FiniteElement("RT", mesh.ufl_cell(), 2)
-    Q = FiniteElement("CG", mesh.ufl_cell(), 1)
+    Q = FiniteElement("DG", mesh.ufl_cell(), 1)
 
-    #making mixed space
     VQ = V*Q
     W = FunctionSpace(mesh,VQ)
 
@@ -64,7 +60,7 @@ def get_state_space(mesh, boundaries=None):
 def get_state_variable(W):
     return Function(W)
 
-def get_function_space(mesh):
+def get_parameter_space(mesh):
     A = FunctionSpace(mesh, 'CG', 1)
     return A
 

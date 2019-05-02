@@ -3,15 +3,14 @@ import os
 
 from fenics import *
 from fenics_adjoint import *
-import sympy as sym
 import numpy as np
-import math
 import matplotlib.pyplot as plt
 
-from scipy import linalg, sparse
+from scipy import linalg
 from sklearn.utils import *
 from sklearn.utils.extmath import svd_flip
 from pyadjoint.overloaded_function import overload_function
+from pyadjoint.tape import stop_annotating, get_working_tape
 
 from SVD_extra import get_matrix, safe_sparse_dot, randomized_range_finder, randomized_svd1, reject_outlier
 from ipopt_solver1 import *
@@ -33,14 +32,13 @@ from numpy_block_var import Ndarray
 from dot_to_function import dot_to_function
 dot_to_function = overload_function(dot_to_function, UpdatedBlock)
 
-## We can change the setting on the command line
-parser = argparse.ArgumentParser()
-parser.add_argument("-o", "--observation", action="store_true", help="make the observation")
-parser.add_argument("-r", "--regularization", type=int, default=0, help="power of regularization term ")
-parser.add_argument("-nc", "--number_of_components", type=int, default=20, help="number of components in Truncated SVD")
-parser.add_argument("-ni", "--number_of_iterations", type=int, default=20, help="number of power iterations in Truncated SVD")
 
 if __name__ == "__main__":
+
+    ## We can change the setting on the command line
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-nc", "--number_of_components", type=int, default=20, help="number of components in Truncated SVD")
+    parser.add_argument("-ni", "--number_of_iterations", type=int, default=20, help="number of power iterations in Truncated SVD")
  
     ## We can change the settings in direcretization and   
     Discretization.add_args(parser)   
@@ -51,45 +49,44 @@ if __name__ == "__main__":
     ## Getting input values
     args = parser.parse_args()
     
-    ## First of solving the problems, we defined the discretization of the problem.    
+    ## Before solving the problems, we defined the discretization of the problem.    
     disc = Discretization(args)
-    
-    ## Next we defined the Misifit using discretization.
-    # Want a flag to say which original inverse problem to run, save that information in misfit
-    misfit = Misfit(args, disc, name="original")
-    
-    ## Next we got the state variables and observation from the misfit.
-    state = misfit.state
-    obs = misfit.obs
 
-    ## If we needed to make the observation, we could make the observation
-    ## Otherwise we could just load the data from the files.
-    if args.observation:
-        K = get_coefficient_space(disc.mesh)
-        ka_true = get_initial_coefficients(K)
-        w_true = state.solve(ka=ka_true)
-        obs.set_observed(w_true)
-    else:
-        obs.get_observed(state.W)
-     
+    ## Context that describes what data we have and how it relates to the model
+    obs = Observation(args, disc)
+
+    ## Context that describes how observable state is determined by the parameters
+    state = State(args, disc)
+
+    ## Next we defined the Misfit using discretization.
+    misfit = Misfit(args, disc, obs=obs, name="original")
+    
     #########################################################################
     ## Inverse problem with full space and full observation #################
     #########################################################################
 
-    ## Next we dfined regularization
-    reg = Regularization(state.ka, state.A, args)
-    import pdb
-    pdb.set_trace()
-    ## Next we combined misfit and regularization to define reduced functional objective
-    objective = misfit(state.ka, obs.observed) + reg(state.ka)
-    # objective = misfit(ka) + reg(ka)
-    Jhat = misfit.misfit_op(objective, Control(state.ka))
+    ## Next we define regularization
+    reg = Regularization(args, disc)
 
-    # Sovling minimization problem and save the result
-    problem = MinimizationProblem(Jhat)
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 1}
-    solver = IPOPTSolver(problem, parameters=parameters)   
-    ka_opt = solver.solve()
+    ## get a parameter vector
+    ka = state.default_parameters()
+
+    ## Next we combined misfit and regularization to define reduced functional objective
+    m = misfit(ka)
+    r = reg(ka)
+    objective = m + r
+
+    get_working_tape().visualise()
+
+    # objective = misfit(ka) + reg(ka)
+    Jhat = misfit.misfit_op(objective, Control(ka))
+
+    # Solving minimization problem and save the result
+    with stop_annotating():
+        problem = MinimizationProblem(Jhat)
+        parameters = {"acceptable_tol": 1.0e-6, "maximum_iterations": 100}
+        solver = IPOPTSolver(problem, parameters=parameters)   
+        ka_opt = solver.solve()
     
     # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
     # xdmf_filename.write(ka_opt)
@@ -101,7 +98,7 @@ if __name__ == "__main__":
     ## 9 components observation and Randomized SVD ##########################
     #########################################################################
 
-    Jhat_red = misfit.misfit_op(residual_red, Control(state.ka))
+    Jhat_r = misfit.misfit_op(r, Control(state.ka))
 
     ## Calculating PriorPreconditionedHessian matrix of Jhat_red
     priorprehessian = PriorPrecHessian(Jhat_red, reg, state.ka)    
