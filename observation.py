@@ -1,18 +1,19 @@
 from fenics import *
 from fenics_adjoint import *
+from pyadjoint.tape import get_working_tape
 
 from initialize import *
 from discretization import *
-from state import *
 
 import numpy as np
 import h5py
 
 class Observation(object):
 
-    def __init__(self, args, disc):
+    def __init__(self, args, disc, name="observation"):
         self.args = args
         self.disc = disc
+        self.name = name
         self.W = disc.parameter_space
         self.D = disc.observation_space
         self.observed = None     # state_obs = State(disc)
@@ -38,7 +39,8 @@ class Observation(object):
         a vector that lives in the observation space """
 
         # right now, for this example, this can just be a copy of w
-        wcopy = w.copy(deepcopy=True)
+        with get_working_tape().name_scope(self.name):
+            wcopy = w.copy(deepcopy=True)
         return wcopy
 
 

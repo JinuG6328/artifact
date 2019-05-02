@@ -1,6 +1,6 @@
 from fenics import *
 from fenics_adjoint import *
-from pyadjoint.tape import stop_annotating
+from pyadjoint.tape import stop_annotating, get_working_tape
 
 from discretization import Discretization
 from state import State
@@ -12,10 +12,11 @@ import matplotlib.pyplot as plt
 
 class Misfit(object):
 
-    def __init__(self, args, disc, obs=None, state=None, name = None):
+    def __init__(self, args, disc, obs=None, state=None, name = "misfit"):
 
         self.n = args.num_components_misfit
         self.full = args.misfit_full_space
+        self.name = name
         
         self.disc = disc
         if obs is None:
@@ -64,28 +65,28 @@ class Misfit(object):
     def make_misfit_red(self, d_w, ka):
         w = self.state.solve(ka=ka)
         w = self.obs.apply(w)
-        J = 0.
-        l = int(sqrt(self.n))+1
-        for i in range(1,l):
-            for j in range(1,l):
-                e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 9, i = i, j = j)
-                mid = interpolate(e,self.state.W.sub(1).collapse())
-                J_int = assemble((0.5*inner(w[1]-d_w[1], mid))*dx)
-                J_int_2 = J_int*J_int
-                J += J_int_2
+        with get_working_tape().name_scope(self.name):
+            J = 0.
+            l = int(sqrt(self.n))+1
+            for i in range(1,l):
+                for j in range(1,l):
+                    e = Expression("sin(i*pi * x[0]) * sin(j*pi * x[1])", degree = 9, i = i, j = j)
+                    mid = interpolate(e,self.state.W.sub(1).collapse())
+                    J_int = assemble((0.5*inner(w[1]-d_w[1], mid))*dx)
+                    J_int_2 = J_int*J_int
+                    J += J_int_2
         return J
 
 
     def make_misfit(self, d_w, ka):
         w = self.state.solve(ka=ka)
         w = self.obs.apply(w)
-        J = assemble(0.5*inner(w[1]-d_w[1], w[1]-d_w[1])*dx )
+        with get_working_tape().name_scope(self.name):
+            J = assemble(0.5*inner(w[1]-d_w[1], w[1]-d_w[1])*dx )
         return J
         
 
     def misfit_op(self, J, m):
-        import pdb
-        pdb.set_trace()
         Jhat = ReducedFunctional(J, m)
         compute_gradient(Jhat.functional, Jhat.controls[0])
         return Jhat

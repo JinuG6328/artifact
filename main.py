@@ -59,7 +59,7 @@ if __name__ == "__main__":
     state = State(args, disc)
 
     ## Next we defined the Misfit using discretization.
-    misfit = Misfit(args, disc, obs=obs, name="original")
+    misfit = Misfit(args, disc, obs=obs)
     
     #########################################################################
     ## Inverse problem with full space and full observation #################
@@ -69,14 +69,14 @@ if __name__ == "__main__":
     reg = Regularization(args, disc)
 
     ## get a parameter vector
-    ka = state.default_parameters()
+    with get_working_tape().name_scope("parameters"):
+        ka = state.default_parameters()
 
     ## Next we combined misfit and regularization to define reduced functional objective
     m = misfit(ka)
     r = reg(ka)
-    objective = m + r
-
-    get_working_tape().visualise()
+    with get_working_tape().name_scope("objective"):
+        objective = m + r
 
     # objective = misfit(ka) + reg(ka)
     Jhat = misfit.misfit_op(objective, Control(ka))
@@ -88,25 +88,27 @@ if __name__ == "__main__":
         solver = IPOPTSolver(problem, parameters=parameters)   
         ka_opt = solver.solve()
     
-    # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
-    # xdmf_filename.write(ka_opt)
+        # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
+        # xdmf_filename.write(ka_opt)
 
-    ## Taylor test
-    # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
+        ## Taylor test
+        # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
 
-    #########################################################################
-    ## 9 components observation and Randomized SVD ##########################
-    #########################################################################
+        #########################################################################
+        ## 9 components observation and Randomized SVD ##########################
+        #########################################################################
 
-    Jhat_r = misfit.misfit_op(r, Control(state.ka))
+        Jhat_r = misfit.misfit_op(r, Control(ka))
 
-    ## Calculating PriorPreconditionedHessian matrix of Jhat_red
-    priorprehessian = PriorPrecHessian(Jhat_red, reg, state.ka)    
+        get_working_tape().visualise()
 
-    ## Number of components, number of iteration, and randomized SVD
-    n_components = args.number_of_components
-    n_iter = args.number_of_iterations
-    U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
+        ## Calculating PriorPreconditionedHessian matrix of Jhat_red
+        priorprehessian = PriorPrecHessian(Jhat_r, reg, ka)    
+
+        ## Number of components, number of iteration, and randomized SVD
+        n_components = args.number_of_components
+        n_iter = args.number_of_iterations
+        U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
 
     #########################################################################
     ## With U(VT), we can define the reduced space problem: #################

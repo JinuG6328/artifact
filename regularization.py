@@ -1,5 +1,6 @@
 from fenics import *
 from fenics_adjoint import *
+from pyadjoint.tape import get_working_tape
 import ufl
 
 from initialize import *
@@ -9,8 +10,9 @@ from state import *
 import numpy as np
 
 class Regularization(object):   
-    def __init__(self, args, disc):
+    def __init__(self, args, disc, name="regularization"):
         self.args = args
+        self.name = name
         self.Alpha = args.reg_alpha
         self.power = args.reg_degree
         self.Functionspace = disc.parameter_space
@@ -32,7 +34,8 @@ class Regularization(object):
 
     def __call__(self, ka):
         new_form = ufl.replace(self.reg_form, { self.ka : ka } )
-        reg = assemble(new_form)
+        with get_working_tape().name_scope(self.name):
+            reg = assemble(new_form)
         return reg
 
 

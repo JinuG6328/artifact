@@ -7,23 +7,25 @@ import numpy as np
 import ufl
 
 class PriorPrecHessian():
-    def __init__(self, reduced_functional, regularization_form, ka, transpose=False):
+    def __init__(self, reduced_functional, regularization, ka, transpose=False, p_A=None):
         self._rf = reduced_functional
-        self._reg = regularization_form
+        self._reg = regularization
         self.ka = ka
         self.transpose = transpose
+        if p_A is None:
+            L = regularization.compute_hessian(self.ka)
+            A = L.array()
+            self.p_A = np.linalg.pinv(A)
+        else:
+            self.p_A = p_A
         if not transpose:
-            self.T = PriorPrecHessian(reduced_functional, regularization_form, ka, transpose=True)
-            # self.T.dot(self.ka)
+            self.T = PriorPrecHessian(reduced_functional, regularization, ka, transpose=True, p_A=self.p_A)
 
     def T(self):
         return self.T
     
     def dot(self, b): 
-        
-        L = self._reg.compute_hessian(self.ka)
-        A = L.array()
-        p_A = np.linalg.pinv(A)
+        p_A = self.p_A
         z = self.ka.copy(deepcopy=True)
         if self.transpose:
             z1 = self.ka.copy(deepcopy=True)
