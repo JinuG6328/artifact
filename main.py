@@ -41,7 +41,7 @@ parser.add_argument("-nc", "--number_of_components", type=int, default=20, help=
 parser.add_argument("-i", "--inverse_problem", action="store_true", help="check the inverse problem result with 9 components")
 parser.add_argument("-p", "--prediction", action="store_true", help="check the pressure boundary of specific point")
 parser.add_argument("-ni", "--number_of_iterations", type=int, default=20, help="number of power iterations in Truncated SVD")
-parser.add_argument("-nm", "--number_of_iterations_for_model", type=int, default=50, help="number of iterations for optimization")
+parser.add_argument("-nm", "--number_of_iterations_for_model", type=int, default=30, help="number of iterations for optimization")
 parser.add_argument("-nb", "--number_of_iterations_for_boundary", type=int, default=30, help="number of iterations for getting pressure boundary")
 parser.add_argument("-rb", "--reduced_boundary", action="store_true", help="pressure boundary from the reduced space otherwise that from full space")
 
@@ -70,7 +70,10 @@ if __name__ == "__main__":
     ## If we needed to make the observation, we could make the observation
     ## Otherwise we could just load the data from the files.
     if args.observation:
-        K = get_coefficient_space(disc.mesh)
+        #K = get_coefficient_space(disc.mesh)
+        K = get_function_space(disc.mesh)
+        # import pdb
+        # pdb.set_trace()
         ka_true = get_initial_coefficients(K)
         w_true = state.solve(ka=ka_true)
         obs.set_observed(w_true)
@@ -89,29 +92,46 @@ if __name__ == "__main__":
     
     Jhat = ReducedFunctional_(objective, Control(state.ka))
 
-    # Sovling minimization problem and save the result
-    problem = MinimizationProblem(Jhat)
-    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
-    solver = IPOPTSolver(problem, parameters=parameters)   
-    ka_opt = solver.solve()
-    
-    # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
-    # xdmf_filename.write(ka_opt)
+    # import pdb
+    # pdb.set_trace()
 
-    ## Taylor test
-    # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
+    if args.observation:
+        # Sovling minimization problem and save the result
+        problem = MinimizationProblem(Jhat)
+        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 50}
+        solver = IPOPTSolver(problem, parameters=parameters)   
+        ka_opt = solver.solve()
+        
+        # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
+        # xdmf_filename.write(ka_opt)
 
-    #########################################################################
-    ## Prior Preconditioned Hessian Randomized SVD ##########################
-    #########################################################################
+        ## Taylor test
+        # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
 
-    ## Calculating PriorPreconditionedHessian matrix of Jhat_red
-    priorprehessian = PriorPrecHessian(Jhat, reg, state.ka)    
+        #########################################################################
+        ## Prior Preconditioned Hessian Randomized SVD ##########################
+        #########################################################################
 
-    ## Number of components, number of iteration, and randomized SVD
-    n_components = args.number_of_components
-    n_iter = args.number_of_iterations
-    U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
+        ## Calculating PriorPreconditionedHessian matrix of Jhat_red
+        priorprehessian = PriorPrecHessian(Jhat, reg, state.ka)    
+
+        ## Number of components, number of iteration, and randomized SVD
+        n_components = args.number_of_components
+        n_iter = args.number_of_iterations
+        U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, size = len(ka_opt.vector()[:]))        
+        
+        np.savetxt('opt.txt', ka_opt.vector()[:])
+        np.savetxt('U.txt', U)
+        np.savetxt('Sigma.txt', Sigma)
+        np.savetxt('VT.txt', VT)
+
+    else:
+        K = get_coefficient_space(disc.mesh)
+        ka_opt = get_initial_coefficients(K)
+        ka_opt.vector()[:] = np.loadtxt('opt.txt')
+        U = np.loadtxt('U.txt')
+        Sigma = np.loadtxt('Sigma.txt')
+        VT = np.loadtxt('VT.txt')
 
     #########################################################################
     ## With U(VT), we can define the reduced space problem: #################
@@ -138,7 +158,7 @@ if __name__ == "__main__":
     iters = args.number_of_iterations_for_model
 
     ## Solve the optimization problem
-    problem1 = MinimizationProblem(Jhat2, constraints=ResidualConstraint(1, Jhat, U))
+    problem1 = MinimizationProblem(Jhat2, constraints=ResidualConstraint(10, Jhat, U))
     parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": iters}
     solver1 = IPOPTSolver(problem1, parameters=parameters)
     
@@ -172,12 +192,12 @@ if __name__ == "__main__":
             Jhat_cen = ReducedFunctional_(pressure_cen, Control(state.ka))
 
             problem_pred_low = MinimizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat))
-            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": n_iters_f}
+            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": n_iters}
             solver_pred_low = IPOPTSolver(problem_pred_low, parameters=parameters)
             ka_pred_low = solver_pred_low.solve()
 
             problem_pred_up = MaximizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat))
-            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": n_iters_f}
+            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": n_iters}
             solver_pred_up = IPOPTSolver(problem_pred_up, parameters=parameters)
             ka_pred_up = solver_pred_up.solve()
 

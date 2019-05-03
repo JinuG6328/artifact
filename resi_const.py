@@ -32,12 +32,12 @@ class ResidualConstraint(InequalityConstraint):
         def jacobian(self, m):
             if self.U is not None:
                 if isinstance(self.rfn.derivative(), Ndarray):
-                    return [self.rfn.derivative()]
+                    return [-self.rfn.derivative()]
                 else:
                     interm = self.U.T.dot(self.rfn.derivative().vector()[:])
-                    return [interm]
+                    return [-interm]
             else:
-                return [self.rfn.derivative().vector()[:]]
+                return [-self.rfn.derivative().vector()[:]]
 
         def output_workspace(self):
             return [0.0]
