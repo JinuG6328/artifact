@@ -112,7 +112,7 @@ if __name__ == "__main__":
         ## Number of components, number of iteration, and randomized SVD
         n_components = args.number_of_components
         n_iter = args.number_of_iterations
-        U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, size = (disc.n+1)*(disc.n+1))
+        U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = 10, size = (disc.n+1)*(disc.n+1))
 
     #########################################################################
     ## With U(VT), we can define the reduced space problem: #################
@@ -143,43 +143,70 @@ if __name__ == "__main__":
 
     ## Pressure at the 0.5, 0.8    
     pred = Prediction(args, disc, name="prediction")
+
     pressure_cen = pred(ka)
     Jhat_cen = pred.prediction_op(pressure_cen, Control(ka))
 
     pressure_cen_red = pred(ka_new_opt)
     Jhat_cen_red = pred.prediction_op(pressure_cen_red, Control(ai))
 
+    get_working_tape().visualise()
+    import pdb
+    pdb.set_trace()
+
     with stop_annotating():
-        problem_pred_low = MinimizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat_m))
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10}
-        solver_pred_low = IPOPTSolver(problem_pred_low, parameters=parameters)
-        ka_pred_low = solver_pred_low.solve()
+        lamda = 1.e6
 
-        problem_pred_up = MaximizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat_m))
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10}
-        solver_pred_up = IPOPTSolver(problem_pred_up, parameters=parameters)
-        ka_pred_up = solver_pred_up.solve()
+        while ():
+            p = Jhat_cen_red(ai) + lamda * Jhat_m(ai)
+            Jhat_min = rf(p, (ai))
+            ...
+            # optimize
+            p_cen = Jhat_cen_red(ai_opt)
+            p_m   = Jhat_m(ai_opt) #eps
 
-        prediction_upper_bound = Jhat_cen(ka_pred_up)
-        prediction_lower_bound = Jhat_cen(ka_pred_low)
+            lamda = lamda * 0.1
+
+        #Jhat_cen(ka_opt)
+        #problem_pred_low = MinimizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat_m))
+        #parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : 100}
+        #solver_pred_low = IPOPTSolver(problem_pred_low, parameters=parameters)
+        #ka_pred_low = solver_pred_low.solve()
+        #print(ka_pred_low.vector()[:])
+        #prediction_lower_bound = Jhat_cen(ka_pred_low)
+
+        #Jhat_cen(ka_opt)
+        #problem_pred_up = MaximizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat_m))
+        #parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : 100}
+        #solver_pred_up = IPOPTSolver(problem_pred_up, parameters=parameters)
+        #ka_pred_up = solver_pred_up.solve()
+        #print(ka_pred_up.vector()[:])
+        #prediction_upper_bound = Jhat_cen(ka_pred_up)
 
         #########################################################################
         ## Finding the range of the pressure at specific point ##################
         ## With reduced space ###################################################
         #########################################################################
 
+        Jhat_cen_red(ai)
         problem_pred_low_red = MinimizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1., Jhat_m_red))
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10}
+        parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 10, "print_level" : 7}
         solver_pred_low_red = IPOPTSolver(problem_pred_low_red, parameters=parameters)
         ka_pred_low_red = solver_pred_low_red.solve()
+        print(U.dot(ka_pred_low_red))
+        prediction_lower_bound_red = Jhat_cen_red(ka_pred_low_red)
+        misfit_lower_bound_red = Jhat_m_red(ka_pred_low_red)
+        print(prediction_lower_bound_red, misfit_lower_bound_red)
 
+        Jhat_cen_red(ai)
         problem_pred_up_red = MaximizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1., Jhat_m_red))
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10}
+        parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 10, "print_level" : 7}
         solver_pred_up_red = IPOPTSolver(problem_pred_up_red, parameters=parameters)
         ka_pred_up_red = solver_pred_up_red.solve()
-
+        print(U.dot(ka_pred_up_red))
         prediction_upper_bound_red = Jhat_cen_red(ka_pred_up_red)
-        prediction_lower_bound_red = Jhat_cen_red(ka_pred_low_red)
+        misfit_upper_bound_red = Jhat_m_red(ka_pred_up_red)
+        print(prediction_upper_bound_red, misfit_upper_bound_red)
 
     print(prediction_upper_bound)
     print(prediction_lower_bound)

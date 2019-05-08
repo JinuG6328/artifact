@@ -8,7 +8,7 @@ class Discretization(object):
     def __init__(self, namespace):
         self.n = namespace.grid_n
         self.mesh, self.boundaries = initialize.get_mesh(self.n)
-        self.state_space, self.bcs = initialize.get_state_space(self.mesh)
+        self.state_space, self.bcs = initialize.get_state_space(self.mesh, boundaries=self.boundaries)
         self.parameter_space = initialize.get_parameter_space(self.mesh)
         self.observation_space = self.parameter_space
     

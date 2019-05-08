@@ -143,10 +143,7 @@ def randomized_range_finder(A, size, n_iter, Size_f_rf, power_iteration_normaliz
         print("Power iteration %d" % i)
         if power_iteration_normalizer == 'none':
             Q = safe_sparse_dot(A, Q)
-            if isinstance(a, ReducedFunctional):
-                Q = safe_sparse_dot(A, Q)
-            else:
-                Q = safe_sparse_dot(A.T, Q)
+            Q = safe_sparse_dot(A.T, Q)
         elif power_iteration_normalizer == 'LU':
             Q, _ = linalg.lu(safe_sparse_dot(A, Q), permute_l=True)
             Q, _ = linalg.lu(safe_sparse_dot(A.T, Q), permute_l=True)
@@ -268,7 +265,7 @@ def randomized_svd1(M, n_components, n_oversamples=10, n_iter='auto',
     # Change m to rf
     # import pdb
     # pdb.set_trace()
-    M = get_matrix_1(M)
+    #M = get_matrix_1(M)
     # import pdb
     # pdb.set_trace()
     #np.savetxt('M.txt', M)
