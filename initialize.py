@@ -68,8 +68,7 @@ def alpha1(ka):
     return exp(ka)
 
 def get_coefficient_space(mesh):
-    K = FunctionSpace(mesh, 'DG', 0)
-    return K    
+    return get_parameter_space(mesh)
 
 def get_initial_coefficients(K):
     # mesh = K.mesh()

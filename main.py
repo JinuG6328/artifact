@@ -20,7 +20,7 @@ from covariance import PriorPrecHessian
 from initialize import *
 from discretization import Discretization
 from state import State
-from misfit import Misfit
+from misfit import Misfit, ReducedFunctional_
 from prediction import Prediction
 from observation import Observation
 from regularization import Regularization
@@ -33,7 +33,6 @@ from numpy_block_var import Ndarray
 from dot_to_function import dot_to_function
 dot_to_function = overload_function(dot_to_function, UpdatedBlock)
 
-
 if __name__ == "__main__":
 
     ## We can change the setting on the command line
@@ -41,7 +40,14 @@ if __name__ == "__main__":
     parser.add_argument("-nc", "--number_of_components", type=int, default=20, help="number of components in Truncated SVD")
     parser.add_argument("-ni", "--number_of_iterations", type=int, default=20, help="number of power iterations in Truncated SVD")
     parser.add_argument("-ne", "--number_of_extra_vectors", type=int, default=20, help="number of extra vectors in Truncated SVD")
- 
+    parser.add_argument("-i", "--check_inverse_problem", action="store_true", help="check the inverse problem result with 9 components")
+    parser.add_argument("-p", "--prediction", action="store_true", help="check the pressure boundary of specific point")
+    parser.add_argument("-nm", "--number_of_iterations_for_model", type=int, default=30, help="number of iterations for optimization")
+    parser.add_argument("-nb", "--number_of_iterations_for_boundary", type=int, default=30, help="number of iterations for getting pressure boundary")
+    parser.add_argument("-rb", "--reduced_boundary", action="store_true", help="pressure boundary from the reduced space otherwise that from full space")
+    # TODO: read / write optimal ka
+    # TODO: read / write subspaces
+
     ## We can change the settings in direcretization and   
     Discretization.add_args(parser)   
     Observation.add_args(parser)
@@ -64,7 +70,7 @@ if __name__ == "__main__":
     misfit = Misfit(args, disc, obs=obs, state=state)
     
     #########################################################################
-    ## Inverse problem with full space and full observation #################
+    ## Inverse problem with full space and 9 componets observation ##########
     #########################################################################
 
     ## Next we define regularization
@@ -81,10 +87,10 @@ if __name__ == "__main__":
     with get_working_tape().name_scope("objective"):
         objective = m + r
 
-    # objective = misfit(ka) + reg(ka)
-    Jhat = misfit.misfit_op(objective, Control(ka))
+    Jhat = ReducedFunctional_(objective, Control(ka))
 
     # Solving minimization problem and save the result
+    # TODO: options to skip optimization loop by reading from file
     with stop_annotating():
         problem = MinimizationProblem(Jhat)
         parameters = {"acceptable_tol": 1.0e-6, "maximum_iterations": 100}
@@ -94,6 +100,9 @@ if __name__ == "__main__":
     with get_working_tape().name_scope("optimal_parameters"):
         ka_opt = opt_sol.copy(deepcopy=True)
 
+    # TODO: options to write optimal parameters to file
+
+    # TODO: options to read subspaces from file
     with stop_annotating():
         # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
         # xdmf_filename.write(ka_opt)
@@ -114,7 +123,14 @@ if __name__ == "__main__":
         n_components = args.number_of_components
         n_iter = args.number_of_iterations
         n_extra = args.number_of_extra_vectors
-        U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = (disc.n+1)*(disc.n+1))
+        U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = len(ka_opt.vector()[:]))
+
+        #np.savetxt('opt.txt', ka_opt.vector()[:])
+        #np.savetxt('U.txt', U)
+        #np.savetxt('Sigma.txt', Sigma)
+        #np.savetxt('VT.txt', VT)
+
+    # TODO: options to write subspaces to file
 
     #########################################################################
     ## With U(VT), we can define the reduced space problem: #################
@@ -122,7 +138,7 @@ if __name__ == "__main__":
     #########################################################################
 
     ## Initializing the array to optimize
-    intermediate = np.random.rand(n_components)
+    intermediate = np.random.zeros(n_components)
     ai = Ndarray(intermediate.shape, buffer=intermediate)
 
     with get_working_tape().name_scope("reduced_parameters"):
@@ -133,146 +149,154 @@ if __name__ == "__main__":
         ka_new_opt = Function(disc.parameter_space)
         ka_new_opt.assign(ka_opt + Uai)
     
-    ## Next we evaluate he misfit in the reduced space
-    m_red = misfit(ka_new_opt)
-    
-    ### Making Jhat_red
-    #Jhat_m_red = misfit.misfit_op(m_red, Control(ai))
 
+    if args.check_inverse_problem:
+
+        ## Next we evaluate he misfit in the reduced space
+        m_red = misfit(ka_new_opt)
+
+        ## Making Jhat2
+        Jhat2 = ReducedFunctional_(m_red, Control(ai))
+
+        iters = args.number_of_iterations_for_model
+        ## We want to compare the original regularized full parameter space solution
+        # to the unregularized subspace solution
+
+        problem1 = MinimizationProblem(Jhat2)#, constraints=ResidualConstraint(10, Jhat, U))
+        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": iters}
+        solver1 = IPOPTSolver(problem1, parameters=parameters)
+
+        ka_opt1 = solver1.solve()     
+        
+        ka_opt2 = ka_opt.copy(deepcopy = True)
+        ka_opt2.vector()[:] += U.dot(ka_opt1)
+        
+        firstplot = plot(ka_opt2)
+        plt.colorbar(firstplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])
+        plt.figure()
+        secondplot = plot(ka_opt)
+        plt.colorbar(secondplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])  
+        plt.figure()
+        plt.plot(Sigma)
+        plt.show()
+    
     #########################################################################
     ## Finding the range of the pressure at specific point with full space###
     #########################################################################
 
+    if not args.prediction:
+        return
+
+    switch = args.reduced_boundary
     ## Pressure at the 0.5, 0.8    
     pred = Prediction(args, disc, name="prediction")
 
-    pressure_cen = pred(ka)
-    Jhat_cen = pred.prediction_op(pressure_cen, Control(ka))
-
-    #pressure_cen_red = pred(ka_new_opt)
-    #Jhat_cen_red = pred.prediction_op(pressure_cen_red, Control(ai))
-
+    if switch:
+        pred_val = pred(ka_opt)
+        msft_val = misfit(ka_opt)
+    else:
+        pred_val = pred(ka_new_opt)
+        msft_val = misfit(ka_new_opt)
 
     lamda = AdjFloat(1.e-6)
 
-    with get_working_tape().name_scope("continuation_predicition"):
-        msft_red = misfit(ka_new_opt)
-        pred_red = pred(ka_new_opt)
-        m_red = msft_red + lamda * pred_red
+    with get_working_tape().name_scope("continuation_prediction"):
+        obj_val = msft_val + lamda * pred_val
+
+    if switch:
+        J_pred = ReducedFunctional_(obj_val, Control(ka_opt))
+    else:
+        J_pred = ReducedFunctional_(obj_val, Control(ai))
 
     get_working_tape().visualise()
-    J_pred = ReducedFunctional(m_red, Control(ai))
 
     while True:
-        print(msft_red, pred_red, m_red)
+        print(msft_val, pred_val, obj_val)
         with stop_annotating():
             problem_pred_low = MinimizationProblem(J_pred)
             parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : 7}
             solver_pred_low = IPOPTSolver(problem_pred_low, parameters=parameters)
-            ai_pred_low = solver_pred_low.solve()
-            ka_pred_low = dot_to_function(disc.parameter_space, U, ai) + ka_opt
             lamda = AdjFloat(lamda * 2.)
-            ai[:] = ai_pred_low[:]
-        ka_loop = dot_to_function(disc.parameter_space, U, ai) + ka_opt
-        msft_red = misfit(ka_loop)
-        pred_red = pred(ka_loop)
-        m_red = msft_red + lamda * pred_red
-        print(msft_red, pred_red, m_red)
-        J_pred = ReducedFunctional(m_red, Control(ai))
+            if switch:
+                ka_pred_low = solver_pred_low.solve()
+                ka_opt[:] = ka_pred_low[:]
+            else:
+                ai_pred_low = solver_pred_low.solve()
+                ai[:] = ai_pred_low[:]
+        if switch:
+            ka_loop = Function(ka_opt.function_space())
+            ka_loop.assign(ka_opt)
+        else:
+            ka_loop = dot_to_function(disc.parameter_space, U, ai) + ka_opt
+        msft_val = misfit(ka_loop)
+        pred_val = pred(ka_loop)
+        obj_val = msft_val + lamda * pred_val
+        print(msft_val, pred_val, obj_val)
+        if switch:
+            J_pred = ReducedFunctional_(obj_val, Control(ka_opt))
+        else:
+            J_pred = ReducedFunctional_(obj_val, Control(ai))
         import pdb
         pdb.set_trace()
-        # minimize J_pred
-
-        # change lamda = lamda * 10.
-
-
-    with stop_annotating():
-
-        #while ():
-        #    p = Jhat_cen_red(ai) + lamda * Jhat_m(ai)
-        #    Jhat_min = rf(p, (ai))
-        #    ...
-        #    # optimize
-        #    p_cen = Jhat_cen_red(ai_opt)
-        #    p_m   = Jhat_m(ai_opt) #eps
-
-        #    lamda = lamda * 0.1
-
-        #Jhat_cen(ka_opt)
-        #problem_pred_low = MinimizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat_m))
-        #parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : 100}
-        #solver_pred_low = IPOPTSolver(problem_pred_low, parameters=parameters)
-        #ka_pred_low = solver_pred_low.solve()
-        #print(ka_pred_low.vector()[:])
-        #prediction_lower_bound = Jhat_cen(ka_pred_low)
-
-        #Jhat_cen(ka_opt)
-        #problem_pred_up = MaximizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat_m))
-        #parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : 100}
-        #solver_pred_up = IPOPTSolver(problem_pred_up, parameters=parameters)
-        #ka_pred_up = solver_pred_up.solve()
-        #print(ka_pred_up.vector()[:])
-        #prediction_upper_bound = Jhat_cen(ka_pred_up)
+        # TODO: save/write (msft_fal, pred_val, lamda) to file for plotting
 
         #########################################################################
         ## Finding the range of the pressure at specific point ##################
         ## With reduced space ###################################################
         #########################################################################
 
-        Jhat_cen_red(ai)
-        problem_pred_low_red = MinimizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1., Jhat_m_red))
-        parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 10, "print_level" : 7}
-        solver_pred_low_red = IPOPTSolver(problem_pred_low_red, parameters=parameters)
-        ka_pred_low_red = solver_pred_low_red.solve()
-        print(U.dot(ka_pred_low_red))
-        prediction_lower_bound_red = Jhat_cen_red(ka_pred_low_red)
-        misfit_lower_bound_red = Jhat_m_red(ka_pred_low_red)
-        print(prediction_lower_bound_red, misfit_lower_bound_red)
+        # Constrained optimization doesn't work well right now
+        #Jhat_cen_red(ai)
+        #problem_pred_low_red = MinimizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1., Jhat_m_red))
+        #parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 10, "print_level" : 7}
+        #solver_pred_low_red = IPOPTSolver(problem_pred_low_red, parameters=parameters)
+        #ka_pred_low_red = solver_pred_low_red.solve()
+        #print(U.dot(ka_pred_low_red))
+        #prediction_lower_bound_red = Jhat_cen_red(ka_pred_low_red)
+        #misfit_lower_bound_red = Jhat_m_red(ka_pred_low_red)
+        #print(prediction_lower_bound_red, misfit_lower_bound_red)
 
-        Jhat_cen_red(ai)
-        problem_pred_up_red = MaximizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1., Jhat_m_red))
-        parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 10, "print_level" : 7}
-        solver_pred_up_red = IPOPTSolver(problem_pred_up_red, parameters=parameters)
-        ka_pred_up_red = solver_pred_up_red.solve()
-        print(U.dot(ka_pred_up_red))
-        prediction_upper_bound_red = Jhat_cen_red(ka_pred_up_red)
-        misfit_upper_bound_red = Jhat_m_red(ka_pred_up_red)
-        print(prediction_upper_bound_red, misfit_upper_bound_red)
+        #Jhat_cen_red(ai)
+        #problem_pred_up_red = MaximizationProblem(Jhat_cen_red, constraints=ResidualConstraint(1., Jhat_m_red))
+        #parameters = {"acceptable_tol": 1.0e-4, "maximum_iterations": 10, "print_level" : 7}
+        #solver_pred_up_red = IPOPTSolver(problem_pred_up_red, parameters=parameters)
+        #ka_pred_up_red = solver_pred_up_red.solve()
+        #print(U.dot(ka_pred_up_red))
+        #prediction_upper_bound_red = Jhat_cen_red(ka_pred_up_red)
+        #misfit_upper_bound_red = Jhat_m_red(ka_pred_up_red)
+        #print(prediction_upper_bound_red, misfit_upper_bound_red)
 
-    print(prediction_upper_bound)
-    print(prediction_lower_bound)
-    print(prediction_upper_bound_red)
-    print(prediction_lower_bound_red)
-    import pdb
-    pdb.set_trace()
+    #print(prediction_upper_bound)
+    #print(prediction_lower_bound)
+    #print(prediction_upper_bound_red)
+    #print(prediction_lower_bound_red)
 
 
-    ## Save the result using existing program tool.
-    ka_opt_red = ka_opt.copy(deepcopy = True)
-    
-    # ka_opt2.vector()[:] = reject_outlier(U.dot(ka_opt1))
-    #ka_opt2.vector()[:] = U.dot(ka_opt1)
-    ka_opt_red.vector()[:] = U.dot(ka_opt1)
-    # print("Norm %f", np.linalg.norm(U.dot(ka_opt1)))
+    ### Save the result using existing program tool.
+    #ka_opt_red = ka_opt.copy(deepcopy = True)
+    #
+    ## ka_opt2.vector()[:] = reject_outlier(U.dot(ka_opt1))
+    ##ka_opt2.vector()[:] = U.dot(ka_opt1)
+    #ka_opt_red.vector()[:] = U.dot(ka_opt1)
+    ## print("Norm %f", np.linalg.norm(U.dot(ka_opt1)))
 
-    ## prediction
-    pre_obs = prediction.obs
-    pre_state = prediction.state
-    pre_w = pre_state.solve(ka=ka_opt_red)
-    # import pdb
-    # pdb.set_trace()
-    pre_u, pre_p = pre_w.split(deepcopy=True)
+    ### prediction
+    #pre_obs = prediction.obs
+    #pre_state = prediction.state
+    #pre_w = pre_state.solve(ka=ka_opt_red)
+    ## import pdb
+    ## pdb.set_trace()
+    #pre_u, pre_p = pre_w.split(deepcopy=True)
 
-    firstplot = plot(ka_opt_red)
-    plt.colorbar(firstplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])
-    plt.figure()
-    secondplot = plot(ka_opt)
-    plt.colorbar(secondplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])  
-    plt.figure()
-    plt.plot(Sigma)
-    plt.show()
-    import pdb
-    pdb.set_trace()
+    #firstplot = plot(ka_opt_red)
+    #plt.colorbar(firstplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])
+    #plt.figure()
+    #secondplot = plot(ka_opt)
+    #plt.colorbar(secondplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])  
+    #plt.figure()
+    #plt.plot(Sigma)
+    #plt.show()
+
     #np.savetxt('Sigma.txt', Sigma)
 
     # xdmf_filename = XDMFFile("reduced_solution.xdmf")

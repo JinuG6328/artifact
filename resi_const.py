@@ -6,7 +6,7 @@ import numpy as np
 class ResidualConstraint(InequalityConstraint):
         """A class that enforces the residual constraint r(x) <= eps """
 
-        def __init__(self, eps, rfn, U = None):
+        def __init__(self, eps, rfn):
             self.eps = float(eps)
             self.rfn = rfn
             self.tmpvec = rfn.controls[0]._ad_copy()

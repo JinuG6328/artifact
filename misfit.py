@@ -68,19 +68,17 @@ class Misfit(object):
         return J
         
 
-    def misfit_op(self, J, m):
-        Jhat = ReducedFunctional(J, m)
-        compute_gradient(Jhat.functional, Jhat.controls[0])
-        return Jhat
-
-
     def __call__(self, ka, w_obs=None):
         ''' we want this to return the misfit between the observation process applied to w and the observed values '''
         if not w_obs:
             w_obs = self.d_w
         if self.full:
-            return self.make_misfit_red(w_obs,ka)
-        else:
             return self.make_misfit(w_obs,ka)
-
+        else:
+            return self.make_misfit_red(w_obs,ka)
     
+
+def ReducedFunctional_(J, m):
+    Jhat = ReducedFunctional(J, m)
+    hello = compute_gradient(Jhat.functional, Jhat.controls[0])
+    return Jhat
