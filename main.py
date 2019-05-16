@@ -152,24 +152,41 @@ if __name__ == "__main__":
     #pressure_cen_red = pred(ka_new_opt)
     #Jhat_cen_red = pred.prediction_op(pressure_cen_red, Control(ai))
 
-    get_working_tape().visualise()
-    import pdb
-    pdb.set_trace()
 
     lamda = AdjFloat(1.e-6)
 
-    m_red = misfit(ka_new_opt) + lamda * pred(ka_new_opt)
+    with get_working_tape().name_scope("continuation_predicition"):
+        msft_red = misfit(ka_new_opt)
+        pred_red = pred(ka_new_opt)
+        m_red = msft_red + lamda * pred_red
 
+    get_working_tape().visualise()
     J_pred = ReducedFunctional(m_red, Control(ai))
 
     while True:
+        print(msft_red, pred_red, m_red)
+        with stop_annotating():
+            problem_pred_low = MinimizationProblem(J_pred)
+            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : 7}
+            solver_pred_low = IPOPTSolver(problem_pred_low, parameters=parameters)
+            ai_pred_low = solver_pred_low.solve()
+            ka_pred_low = dot_to_function(disc.parameter_space, U, ai) + ka_opt
+            lamda = AdjFloat(lamda * 2.)
+            ai[:] = ai_pred_low[:]
+        ka_loop = dot_to_function(disc.parameter_space, U, ai) + ka_opt
+        msft_red = misfit(ka_loop)
+        pred_red = pred(ka_loop)
+        m_red = msft_red + lamda * pred_red
+        print(msft_red, pred_red, m_red)
+        J_pred = ReducedFunctional(m_red, Control(ai))
+        import pdb
+        pdb.set_trace()
         # minimize J_pred
 
         # change lamda = lamda * 10.
 
 
     with stop_annotating():
-        lamda = 1.e6
 
         #while ():
         #    p = Jhat_cen_red(ai) + lamda * Jhat_m(ai)
