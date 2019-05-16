@@ -40,6 +40,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-nc", "--number_of_components", type=int, default=20, help="number of components in Truncated SVD")
     parser.add_argument("-ni", "--number_of_iterations", type=int, default=20, help="number of power iterations in Truncated SVD")
+    parser.add_argument("-ne", "--number_of_extra_vectors", type=int, default=20, help="number of extra vectors in Truncated SVD")
  
     ## We can change the settings in direcretization and   
     Discretization.add_args(parser)   
@@ -112,7 +113,8 @@ if __name__ == "__main__":
         ## Number of components, number of iteration, and randomized SVD
         n_components = args.number_of_components
         n_iter = args.number_of_iterations
-        U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = 10, size = (disc.n+1)*(disc.n+1))
+        n_extra = args.number_of_extra_vectors
+        U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = (disc.n+1)*(disc.n+1))
 
     #########################################################################
     ## With U(VT), we can define the reduced space problem: #################
@@ -134,8 +136,8 @@ if __name__ == "__main__":
     ## Next we evaluate he misfit in the reduced space
     m_red = misfit(ka_new_opt)
     
-    ## Making Jhat_red
-    Jhat_m_red = misfit.misfit_op(m_red, Control(ai))
+    ### Making Jhat_red
+    #Jhat_m_red = misfit.misfit_op(m_red, Control(ai))
 
     #########################################################################
     ## Finding the range of the pressure at specific point with full space###
@@ -147,25 +149,37 @@ if __name__ == "__main__":
     pressure_cen = pred(ka)
     Jhat_cen = pred.prediction_op(pressure_cen, Control(ka))
 
-    pressure_cen_red = pred(ka_new_opt)
-    Jhat_cen_red = pred.prediction_op(pressure_cen_red, Control(ai))
+    #pressure_cen_red = pred(ka_new_opt)
+    #Jhat_cen_red = pred.prediction_op(pressure_cen_red, Control(ai))
 
     get_working_tape().visualise()
     import pdb
     pdb.set_trace()
 
+    lamda = AdjFloat(1.e-6)
+
+    m_red = misfit(ka_new_opt) + lamda * pred(ka_new_opt)
+
+    J_pred = ReducedFunctional(m_red, Control(ai))
+
+    while True:
+        # minimize J_pred
+
+        # change lamda = lamda * 10.
+
+
     with stop_annotating():
         lamda = 1.e6
 
-        while ():
-            p = Jhat_cen_red(ai) + lamda * Jhat_m(ai)
-            Jhat_min = rf(p, (ai))
-            ...
-            # optimize
-            p_cen = Jhat_cen_red(ai_opt)
-            p_m   = Jhat_m(ai_opt) #eps
+        #while ():
+        #    p = Jhat_cen_red(ai) + lamda * Jhat_m(ai)
+        #    Jhat_min = rf(p, (ai))
+        #    ...
+        #    # optimize
+        #    p_cen = Jhat_cen_red(ai_opt)
+        #    p_m   = Jhat_m(ai_opt) #eps
 
-            lamda = lamda * 0.1
+        #    lamda = lamda * 0.1
 
         #Jhat_cen(ka_opt)
         #problem_pred_low = MinimizationProblem(Jhat_cen, constraints=ResidualConstraint(1, Jhat_m))
