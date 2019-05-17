@@ -83,7 +83,7 @@ def get_initial_coefficients(K):
         xx = x.vector()[d]
         yy = y.vector()[d]
         if 0.25 < xx < 0.75 and 0.25 < yy < 0.75:
-            k.vector()[d] = log(1.0)
+            k.vector()[d] = np.log(1.0)
         else:
-            k.vector()[d] = log(0.1)
+            k.vector()[d] = np.log(0.1)
     return k

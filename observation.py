@@ -23,7 +23,7 @@ class Observation(object):
         if self.obs_read_file:
             o = Function(self.D)
             input_file = HDF5File(self.disc.mesh.mpi_comm(), args.obs_read_file, "r")
-            input_file.read(o, "Mixed")
+            input_file.read(o)
             input_file.close()
             self.set_observed(o)
 
@@ -63,7 +63,7 @@ class Observation(object):
         self.observed = d
         
         if self.obs_write_file:
-            output_file_mix = HDF5File(self.disc.mesh.mpi_comm(), self.obs_write_file, "w")
-            output_file_mix.write(self.observed, "Mixed")
+            output_file_mix = XDMFFile(self.disc.mesh.mpi_comm(), self.obs_write_file)
+            output_file_mix.write(self.observed)
             output_file_mix.close()
 

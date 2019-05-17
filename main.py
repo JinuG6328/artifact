@@ -90,6 +90,8 @@ if __name__ == "__main__":
     m = misfit(ka)
     r = reg(ka)
 
+    print(m, r)
+
     with get_working_tape().name_scope("objective"):
         objective = m + r
 
@@ -97,7 +99,7 @@ if __name__ == "__main__":
 
     # Solving minimization problem and save the result
     # TODO: options to skip optimization loop by reading from file
-    if args.save_optimal_solution:
+    if args.load_optimal_solution:
         xdmf_file = XDMFFile("optimal_solution.xdmf", "r")
         xdmf_file.read(ka_opt)
         xdmf_file.close()
@@ -105,7 +107,7 @@ if __name__ == "__main__":
     else:
         with stop_annotating():
             problem = MinimizationProblem(Jhat)
-            parameters = {"acceptable_tol": 1.0e-6, "maximum_iterations": 100}
+            parameters = {"acceptable_tol": 1.0e-6, "maximum_iterations": 15, "print_level": args.verbosity_ipopt}
             solver = IPOPTSolver(problem, parameters=parameters)   
             opt_sol = solver.solve().copy(deepcopy=True)
 

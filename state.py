@@ -36,7 +36,7 @@ class State(object):
 
     def default_parameters(self):
         ka = Function(self.A)
-        ka.assign(Constant(0.5))
+        ka.assign(get_initial_coefficients(self.A))
         return ka #interpolate(Constant(0.5), self.A)
 
     def apply(self, w, ka=None):
