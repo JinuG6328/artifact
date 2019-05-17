@@ -20,57 +20,14 @@ class Ndarray(FloatingType, np.ndarray):
                                     _ad_outputs=kwargs.pop("_ad_outputs", None),
                                     annotate=kwargs.pop("annotate", True),
                                     **kwargs)
-        # numpy doc claims array is initialized after __new__?
-
-    # def create_block_variable(self):
-    #     self.block_variable = BlockVariable(self)
-    #     return self.block_variable
-
-    # def assign(self, other, *args, **kwargs):
-    #     annotate_tape = kwargs.pop("annotate_tape", True)
-    #     # import pdb
-    #     # pdb.set_trace()
-    #     if annotate_tape:
-    #         #other = args[0]
-    #         if not isinstance(other, OverloadedType):
-    #             other = create_overloaded_object(other)
-
-    #         block = AssignBlock(self, other)
-    #         tape = get_working_tape()
-    #         tape.add_block(block)
-
-    #     # ret = backend.Constant.assign(self, *args, **kwargs)
-    #     #ret = ndarray(other.shape,buffer=other)
-    #     import pdb
-    #     pdb.set_trace()
-    #     with stop_annotating():
-    #         ret = super(Ndarray, self).assign(other, *args, **kwargs)
-    #     # ret =
-
-    #     if annotate_tape:
-    #         block.add_output(self.create_block_variable())
-
-    #     return ret
-
-    # def get_derivative(self, options={}):
-    #     return ndarray(self.adj_value.shape,buffer=self.adj_value)
-
-    # def data(self):
-    #     return self.block_output.checkpoint
 
     def copy_d(self, values = False):
-        # import pdb
-        # pdb.set_trace()
         r = np.ndarray(self.shape, buffer = copy.deepcopy(self))
         r_numpy_block = create_overloaded_object(r)
         return r_numpy_block
 
     @classmethod
     def _ad_init_object(cls, obj):
-        # r = np.zeros(obj.shape)
-        # import pdb
-        # pdb.set_trace()
-
         r = obj.copy()
         return cls(r.shape, buffer=r)
 

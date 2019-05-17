@@ -1,56 +1,75 @@
+import ufl
 from fenics import *
 from fenics_adjoint import *
+from pyadjoint.tape import get_working_tape, stop_annotating
 
 from initialize import *
 from discretization import Discretization
 
 class State(object):
 
-    def __init__(self, disc):
+    def __init__(self, namespace, disc, name="state"):
         self.disc = disc
-    
-        self.W, self.bcs = get_state_space(disc.mesh, disc.boundaries)
-        self.w = get_state_variable(self.W)
+        self.W, self.bcs = disc.state_space, disc.bcs
+        self.A = disc.parameter_space
+        self.w = Function(self.W)
+        self.name = name
 
-        self.A = get_function_space(self.disc.mesh)
-        self.V = Constant(0.5)
-        self.ka = interpolate(self.V, self.A)
+        u, p = split(self.w)
+        z = TestFunction(self.W)
+        v, q = split(z)
 
-        # self.u, self.p = None, None
-        # self.v, self.q = None, None
-        # self.a = None
-        # self.Amat, self.b = None, None
+        with stop_annotating():
+            self.ka = self.default_parameters()
+        n1 = FacetNormal(self.disc.mesh)
+        myds = Measure('ds', domain=self.disc.mesh, subdomain_data=self.disc.boundaries)
+        with get_working_tape().name_scope(self.name + "_coefficients"):
+            outflux = Constant(-1.)
+            outflux.assign(outflux)
+            influx = Constant(1.)
+            influx.assign(influx)
+        L1 = dot(v,n1)*outflux*myds(1)
+        L2 = dot(v,n1)*influx*myds(2)
+        self.form = (inner( alpha1(self.ka) * u, v) + (div(v)*p) + (div(u)*q))*dx - (L1 + L2)
+        what = TrialFunction(self.W)
+        self.Jform = derivative(self.form, self.w, what)
 
-    def _get_residual_form(self, w):
-        # maybe need this?
-        pass
+    def default_parameters(self):
+        ka = Function(self.A)
+        ka.assign(Constant(0.5))
+        return ka #interpolate(Constant(0.5), self.A)
 
     def apply(self, w, ka=None):
         """ Compute the residual of the state equations for w """
-        # if we have not assembled the residual form yet, assemble it
-        # (cache for later use, maybe)
-        # assemble the residual form for w
-        pass
+        if ka is None:
+            ka = self.ka
+        new_form = ufl.replace(self.form, { self.ka: ka, self.w: w })
+        with get_working_tape().name_scope(self.name + "_residual"):
+            res = assemble(new_form)
+            self.bcs.apply(res)
+        return res
 
-    def solve(self, ka=None):
-        self.u, self.p = TrialFunctions(self.W)
-        self.v, self.q = TestFunctions(self.W)
-        self.a = (inner( alpha1(ka) * self.u, self.v) + (div(self.v)*self.p) + (div(self.u)*self.q))*dx 
+    def __call__(self, w, ka=None):
+        self.apply(w,ka=ka)
 
-        self.n1 = FacetNormal(self.disc.mesh)
-        self.myds = Measure('ds', domain=self.disc.mesh, subdomain_data=self.disc.boundaries)
-        
-        self.L1 = dot(self.v,self.n1)*Constant(-1.)*self.myds(1)
-        self.L2 = dot(self.v,self.n1)*Constant(1.)*self.myds(2)
+    def solve(self, ka=None, w=None):
 
-        self.Amat, self.b = assemble_system(self.a, self.L1 + self.L2, self.bcs)
-        solve(self.Amat, self.w.vector(), self.b)
-        return self.w
+        if w is None:
+            w = self.w.copy()
+        if ka is None:
+            ka = self.ka.copy()
+        new_form = ufl.replace(self.form, { self.ka: ka, self.w: w })
+        new_Jform = ufl.replace(self.Jform, { self.ka: ka, self.w: w })
+        with get_working_tape().name_scope(self.name + "_solve"):
+            prob = NonlinearVariationalProblem(new_form, w, self.bcs, new_Jform)
+            solver = NonlinearVariationalSolver(prob)
+            solver.solve()
+        return w
 
-    def set_ka(self):
-        pass
+    def set_ka(self, ka):
+        self.ka = ka
 
     def get_ka(self):
-        pass
+        return self.ka
 
         

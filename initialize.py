@@ -40,13 +40,9 @@ def get_mesh(N):
 
 def get_state_space(mesh, boundaries=None):
 
-    #setting two variable
-    # import pdb
-    # pdb.set_trace()
     V = FiniteElement("RT", mesh.ufl_cell(), 2)
     Q = FiniteElement("DG", mesh.ufl_cell(), 1)
 
-    #making mixed space
     VQ = V*Q
     W = FunctionSpace(mesh,VQ)
 
@@ -64,16 +60,15 @@ def get_state_space(mesh, boundaries=None):
 def get_state_variable(W):
     return Function(W)
 
-def get_function_space(mesh):
-    A = FunctionSpace(mesh, 'DG', 1)
+def get_parameter_space(mesh):
+    A = FunctionSpace(mesh, 'CG', 1)
     return A
 
 def alpha1(ka):
-    return exp(ka)
+    return ka
 
 def get_coefficient_space(mesh):
-    K = FunctionSpace(mesh, 'DG', 1)
-    return K    
+    return get_parameter_space(mesh)
 
 def get_initial_coefficients(K):
     # mesh = K.mesh()
@@ -88,7 +83,7 @@ def get_initial_coefficients(K):
         xx = x.vector()[d]
         yy = y.vector()[d]
         if 0.25 < xx < 0.75 and 0.25 < yy < 0.75:
-            k.vector()[d] = 0.1
-        else:
             k.vector()[d] = 1.0
+        else:
+            k.vector()[d] = 0.1
     return k
