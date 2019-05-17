@@ -49,6 +49,8 @@ if __name__ == "__main__":
     parser.add_argument("-lk", "--load_optimal_solution", action="store_true", help="load optimal solution from file")
     parser.add_argument("-ss", "--save_subspace", action="store_true", help="save subspaces to file")
     parser.add_argument("-ls", "--load_subspace", action="store_true", help="load subspaces from file")
+    parser.add_argument("-vf", "--verbosity-fenics", type=int, default=40, help="how verbose fenics output is (higher is quieter)")
+    parser.add_argument("-vi", "--verbosity-ipopt", type=int, default=0, help="how verbose ipopt is (lower is quieter)")
 
     ## We can change the settings in direcretization and   
     Discretization.add_args(parser)   
@@ -58,6 +60,8 @@ if __name__ == "__main__":
   
     ## Getting input values
     args = parser.parse_args()
+
+    set_log_level(args.verbosity_fenics)
     
     ## Before solving the problems, we defined the discretization of the problem.    
     disc = Discretization(args)
@@ -156,7 +160,7 @@ if __name__ == "__main__":
     #########################################################################
 
     ## Initializing the array to optimize
-    intermediate = np.random.zeros(n_components)
+    intermediate = np.zeros(n_components)
     ai = Ndarray(intermediate.shape, buffer=intermediate)
 
     with get_working_tape().name_scope("reduced_parameters"):
@@ -181,7 +185,7 @@ if __name__ == "__main__":
         # to the unregularized subspace solution
 
         problem1 = MinimizationProblem(Jhat2)#, constraints=ResidualConstraint(10, Jhat, U))
-        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": iters}
+        parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": iters, "print_level": args.verbosity_ipopt}
         solver1 = IPOPTSolver(problem1, parameters=parameters)
 
         ka_opt1 = solver1.solve()     
@@ -229,7 +233,7 @@ if __name__ == "__main__":
         print(msft_val, pred_val, obj_val)
         with stop_annotating():
             problem_pred_low = MinimizationProblem(J_pred)
-            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : 7}
+            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : args.verbosity_ipopt}
             solver_pred_low = IPOPTSolver(problem_pred_low, parameters=parameters)
             lamda = AdjFloat(lamda * 2.)
             if switch:
