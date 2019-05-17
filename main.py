@@ -45,8 +45,10 @@ if __name__ == "__main__":
     parser.add_argument("-nm", "--number_of_iterations_for_model", type=int, default=30, help="number of iterations for optimization")
     parser.add_argument("-nb", "--number_of_iterations_for_boundary", type=int, default=30, help="number of iterations for getting pressure boundary")
     parser.add_argument("-rb", "--reduced_boundary", action="store_true", help="pressure boundary from the reduced space otherwise that from full space")
-    # TODO: read / write optimal ka
-    # TODO: read / write subspaces
+    parser.add_argument("-sk", "--save_optimal_solution", action="store_true", help="save optimal solution to file")
+    parser.add_argument("-lk", "--load_optimal_solution", action="store_true", help="load optimal solution from file")
+    parser.add_argument("-ss", "--save_subspace", action="store_true", help="save subspaces to file")
+    parser.add_argument("-ls", "--load_subspace", action="store_true", help="load subspaces from file")
 
     ## We can change the settings in direcretization and   
     Discretization.add_args(parser)   
@@ -101,6 +103,8 @@ if __name__ == "__main__":
         ka_opt = opt_sol.copy(deepcopy=True)
 
     # TODO: options to write optimal parameters to file
+    xdmf_filename = XDMFFile("optimal_solution.xdmf")
+    xdmf_filename.write(ka_opt)
 
     # TODO: options to read subspaces from file
     with stop_annotating():
@@ -114,7 +118,7 @@ if __name__ == "__main__":
         ## 9 components observation and Randomized SVD ##########################
         #########################################################################
 
-        Jhat_m = misfit.misfit_op(m, Control(ka))
+        Jhat_m = ReducedFunctional_(m, Control(ka))
 
         ## Calculating PriorPreconditionedHessian matrix of Jhat_m
         priorprehessian = PriorPrecHessian(Jhat_m, reg, ka_opt)
@@ -125,13 +129,19 @@ if __name__ == "__main__":
         n_extra = args.number_of_extra_vectors
         U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = len(ka_opt.vector()[:]))
 
-        #np.savetxt('opt.txt', ka_opt.vector()[:])
-        #np.savetxt('U.txt', U)
-        #np.savetxt('Sigma.txt', Sigma)
-        #np.savetxt('VT.txt', VT)
+        
 
     # TODO: options to write subspaces to file
+    np.savetxt('opt.txt', ka_opt.vector()[:])
+    np.savetxt('U.txt', U)
+    np.savetxt('Sigma.txt', Sigma)
+    np.savetxt('VT.txt', VT)
 
+    # ka_opt.vector()[:] = np.loadtxt('opt.txt')
+    # U = np.loadtxt('U.txt')
+    # Sigma = np.loadtxt('Sigma.txt')
+    # VT = np.loadtxt('VT.txt')
+    
     #########################################################################
     ## With U(VT), we can define the reduced space problem: #################
     ## Inverse problem with reduced space and full observation ##############
@@ -183,9 +193,6 @@ if __name__ == "__main__":
     #########################################################################
     ## Finding the range of the pressure at specific point with full space###
     #########################################################################
-
-    if not args.prediction:
-        return
 
     switch = args.reduced_boundary
     ## Pressure at the 0.5, 0.8    
