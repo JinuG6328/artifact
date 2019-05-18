@@ -25,7 +25,7 @@ class Regularization(object):
 
     def add_args(parser):
         parser.add_argument("-rd", "--reg-degree", type=int,   default=1,   help="degree of regularization term")
-        parser.add_argument("-ra", "--reg-alpha",  type=float, default=0.1, help="alpha value of regularization term")
+        parser.add_argument("-ra", "--reg-alpha",  type=float, default=0.001, help="alpha value of regularization term")
 
     def compute_hessian(self, ka):
         new_form = ufl.replace(self.hess_form, { self.ka : ka } )

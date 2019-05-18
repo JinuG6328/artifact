@@ -5,6 +5,7 @@ from fenics import *
 from fenics_adjoint import *
 import numpy as np
 import matplotlib.pyplot as plt
+import h5py
 
 from scipy import linalg
 from sklearn.utils import *
@@ -100,9 +101,13 @@ if __name__ == "__main__":
     # Solving minimization problem and save the result
     # TODO: options to skip optimization loop by reading from file
     if args.load_optimal_solution:
-        xdmf_file = XDMFFile("optimal_solution.xdmf", "r")
-        xdmf_file.read(ka_opt)
-        xdmf_file.close()
+        ka_opt = state.default_parameters()
+        optimal=HDF5File(disc.mesh.mpi_comm(), "optimal.h5", "r")
+        optimal.read(ka_opt, "Optimal_solution")
+        optimal.close()
+        # xdmf_file = XDMFFile("optimal_solution.xdmf", "r")
+        # xdmf_file.read(ka_opt)
+        # xdmf_file.close()
 
     else:
         with stop_annotating():
@@ -114,19 +119,12 @@ if __name__ == "__main__":
         with get_working_tape().name_scope("optimal_parameters"):
             ka_opt = opt_sol.copy(deepcopy=True)
 
-        # TODO: options to write optimal parameters to file
         if args.save_optimal_solution:
-            xdmf_filename = XDMFFile("optimal_solution.xdmf")
-            xdmf_filename.write(ka_opt)
+            optimal=HDF5File(disc.mesh.mpi_comm(), "optimal.h5", "w")
+            optimal.write(ka_opt, "Optimal_solution")
+            optimal.close()
 
-    # TODO: options to read subspaces from file
     with stop_annotating():
-        # xdmf_filename = XDMFFile("output/final_solution_Alpha(%f)_p(%f).xdmf" % (Reg.Alpha, Reg.power))
-        # xdmf_filename.write(ka_opt)
-
-        ## Taylor test
-        # conv_rate = taylor_test(sol_residual, state.ka, state.ka*0.1)
-
         #########################################################################
         ## 9 components observation and Randomized SVD ##########################
         #########################################################################
@@ -140,21 +138,20 @@ if __name__ == "__main__":
         n_components = args.number_of_components
         n_iter = args.number_of_iterations
         n_extra = args.number_of_extra_vectors
-        U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = len(ka_opt.vector()[:]))
 
+        if args.load_subspace:
+            # ka_opt.vector()[:] = np.loadtxt('opt.txt')
+            U = np.loadtxt('U.txt')
+            Sigma = np.loadtxt('Sigma.txt')
+            VT = np.loadtxt('VT.txt')            
+        else:
+            U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = len(ka_opt.vector()[:]))
 
-        
-
-    # TODO: options to write subspaces to file
-    np.savetxt('opt.txt', ka_opt.vector()[:])
-    np.savetxt('U.txt', U)
-    np.savetxt('Sigma.txt', Sigma)
-    np.savetxt('VT.txt', VT)
-
-    # ka_opt.vector()[:] = np.loadtxt('opt.txt')
-    # U = np.loadtxt('U.txt')
-    # Sigma = np.loadtxt('Sigma.txt')
-    # VT = np.loadtxt('VT.txt')
+        if args.save_subspace:
+            # np.savetxt('opt.txt', ka_opt.vector()[:])
+            np.savetxt('U.txt', U)
+            np.savetxt('Sigma.txt', Sigma)
+            np.savetxt('VT.txt', VT)
     
     #########################################################################
     ## With U(VT), we can define the reduced space problem: #################
@@ -183,8 +180,6 @@ if __name__ == "__main__":
         Jhat2 = ReducedFunctional_(m_red, Control(ai))
 
         iters = args.number_of_iterations_for_model
-        ## We want to compare the original regularized full parameter space solution
-        # to the unregularized subspace solution
 
         problem1 = MinimizationProblem(Jhat2)#, constraints=ResidualConstraint(10, Jhat, U))
         parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": iters, "print_level": args.verbosity_ipopt}
@@ -193,8 +188,9 @@ if __name__ == "__main__":
         ka_opt1 = solver1.solve()     
         
         ka_opt2 = ka_opt.copy(deepcopy = True)
-        ka_opt2.vector()[:] += U.dot(ka_opt1)
-        
+        #ka_opt2.vector()[:] += U.dot(ka_opt1)
+        ka_opt2.vector()[:] = U.dot(ka_opt1)
+
         firstplot = plot(ka_opt2)
         plt.colorbar(firstplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])
         plt.figure()
