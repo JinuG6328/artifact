@@ -54,7 +54,8 @@ def safe_sparse_dot(a, b):
 
         fs = a.controls[0].function_space()
         q_dot = Function(fs)
-        c = np.ndarray(b.shape)
+        # c = np.ndarray(b.shape)
+        c = zeros(b.shape)
         for i in range(len(b.T)):
             q_dot.vector()[:] = np.ascontiguousarray(b.T[i])
             c[:,i] = a.hessian(q_dot).vector()[:]
@@ -64,7 +65,8 @@ def safe_sparse_dot(a, b):
         
         fs = a._rf.controls[0].function_space()
         q_dot = Function(fs)
-        c = np.ndarray(b.shape)
+        # c = np.ndarray(b.shape)
+        c = np.zeros(b.shape)
         for i in range(len(b.T)):
             q_dot.vector()[:] = np.ascontiguousarray(b.T[i])
             c[:,i] = a.dot(q_dot).vector()[:]
@@ -162,7 +164,7 @@ def randomized_range_finder(A, size, n_iter, Size_f_rf, power_iteration_normaliz
 # remove transpose
 def randomized_svd1(M, n_components, n_oversamples=10, n_iter='auto',
                    power_iteration_normalizer='auto',
-                   flip_sign=True, random_state=0, size = 32):
+                   flip_sign=True, random_state=0, size = 32, matrix=False):
     """Computes a truncated randomized SVD
 
     Parameters
@@ -267,9 +269,9 @@ def randomized_svd1(M, n_components, n_oversamples=10, n_iter='auto',
     # Change m to rf
     # import pdb
     # pdb.set_trace()
-    #M = get_matrix_1(M)
-    # import pdb
-    # pdb.set_trace()
+    if matrix == True:
+        M = get_matrix_1(M)
+    
     #np.savetxt('M.txt', M)
     #M = np.loadtxt('M.txt')
     Q = randomized_range_finder(M, n_random, n_iter, size, power_iteration_normalizer, random_state)

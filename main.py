@@ -46,12 +46,13 @@ if __name__ == "__main__":
     parser.add_argument("-nm", "--number_of_iterations_for_model", type=int, default=30, help="number of iterations for optimization")
     parser.add_argument("-nb", "--number_of_iterations_for_boundary", type=int, default=30, help="number of iterations for getting pressure boundary")
     parser.add_argument("-rb", "--reduced_boundary", action="store_true", help="pressure boundary from the reduced space otherwise that from full space")
-    parser.add_argument("-sk", "--save_optimal_solution", action="store_true", help="save optimal solution to file")
-    parser.add_argument("-lk", "--load_optimal_solution", action="store_true", help="load optimal solution from file")
+    parser.add_argument("-so", "--save_optimal_solution", action="store_true", help="save optimal solution to file")
+    parser.add_argument("-lo", "--load_optimal_solution", action="store_true", help="load optimal solution from file")
     parser.add_argument("-ss", "--save_subspace", action="store_true", help="save subspaces to file")
     parser.add_argument("-ls", "--load_subspace", action="store_true", help="load subspaces from file")
     parser.add_argument("-vf", "--verbosity-fenics", type=int, default=40, help="how verbose fenics output is (higher is quieter)")
     parser.add_argument("-vi", "--verbosity-ipopt", type=int, default=0, help="how verbose ipopt is (lower is quieter)")
+    parser.add_argument("-m", "--matrix", action="store_true", help="using numpy matrix computation")
 
     ## We can change the settings in direcretization and   
     Discretization.add_args(parser)   
@@ -75,7 +76,6 @@ if __name__ == "__main__":
 
     ## Next we defined the Misfit using discretization.
     misfit = Misfit(args, disc, obs=obs, state=state)
-    
     #########################################################################
     ## Inverse problem with full space and 9 componets observation ##########
     #########################################################################
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     m = misfit(ka)
     r = reg(ka)
 
-    print(m, r)
+    # print(m, r)
 
     with get_working_tape().name_scope("objective"):
         objective = m + r
@@ -99,15 +99,11 @@ if __name__ == "__main__":
     Jhat = ReducedFunctional_(objective, Control(ka))
 
     # Solving minimization problem and save the result
-    # TODO: options to skip optimization loop by reading from file
     if args.load_optimal_solution:
         ka_opt = state.default_parameters()
         optimal=HDF5File(disc.mesh.mpi_comm(), "optimal.h5", "r")
         optimal.read(ka_opt, "Optimal_solution")
         optimal.close()
-        # xdmf_file = XDMFFile("optimal_solution.xdmf", "r")
-        # xdmf_file.read(ka_opt)
-        # xdmf_file.close()
 
     else:
         with stop_annotating():
@@ -140,15 +136,13 @@ if __name__ == "__main__":
         n_extra = args.number_of_extra_vectors
 
         if args.load_subspace:
-            # ka_opt.vector()[:] = np.loadtxt('opt.txt')
             U = np.loadtxt('U.txt')
             Sigma = np.loadtxt('Sigma.txt')
             VT = np.loadtxt('VT.txt')            
         else:
-            U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = len(ka_opt.vector()[:]))
+            U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = len(ka_opt.vector()[:]), matrix=args.matrix)
 
         if args.save_subspace:
-            # np.savetxt('opt.txt', ka_opt.vector()[:])
             np.savetxt('U.txt', U)
             np.savetxt('Sigma.txt', Sigma)
             np.savetxt('VT.txt', VT)
@@ -181,28 +175,37 @@ if __name__ == "__main__":
 
         iters = args.number_of_iterations_for_model
 
-        problem1 = MinimizationProblem(Jhat2)#, constraints=ResidualConstraint(10, Jhat, U))
+        problem1 = MinimizationProblem(Jhat2)
         parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": iters, "print_level": args.verbosity_ipopt}
         solver1 = IPOPTSolver(problem1, parameters=parameters)
 
         ka_opt1 = solver1.solve()     
         
         ka_opt2 = ka_opt.copy(deepcopy = True)
-        #ka_opt2.vector()[:] += U.dot(ka_opt1)
+        # ka_opt2.vector()[:] += U.dot(ka_opt1)
         ka_opt2.vector()[:] = U.dot(ka_opt1)
 
         firstplot = plot(ka_opt2)
-        plt.colorbar(firstplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])
+        plt.colorbar(firstplot, ticks = [-0.01, 0, 0.005, 0.01])
         plt.figure()
         secondplot = plot(ka_opt)
         plt.colorbar(secondplot, ticks = [-0.5, 0, 0.1, 0.25, 0.5, 1])  
         plt.figure()
+        plt.xticks(range(0, len(Sigma)))
         plt.plot(Sigma)
+        mode = ka_opt.copy(deepcopy = True)
+        for i in range(0, 5):
+            plt.figure()
+            mode.vector()[:] = U[:,i]
+            plot(mode)
         plt.show()
     
     #########################################################################
     ## Finding the range of the pressure at specific point with full space###
     #########################################################################
+
+    import pdb
+    pdb.set_trace()
 
     switch = args.reduced_boundary
     ## Pressure at the 0.5, 0.8    
@@ -215,7 +218,7 @@ if __name__ == "__main__":
         pred_val = pred(ka_new_opt)
         msft_val = misfit(ka_new_opt)
 
-    lamda = AdjFloat(1.e-6)
+    lamda = AdjFloat(1.e-3)
 
     with get_working_tape().name_scope("continuation_prediction"):
         obj_val = msft_val + lamda * pred_val
@@ -236,9 +239,13 @@ if __name__ == "__main__":
             lamda = AdjFloat(lamda * 2.)
             if switch:
                 ka_pred_low = solver_pred_low.solve()
+                import pdb
+                pdb.set_trace()
                 ka_opt[:] = ka_pred_low[:]
             else:
                 ai_pred_low = solver_pred_low.solve()
+                import pdb
+                pdb.set_trace()
                 ai[:] = ai_pred_low[:]
         if switch:
             ka_loop = Function(ka_opt.function_space())
