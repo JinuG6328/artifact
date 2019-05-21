@@ -116,8 +116,8 @@ if __name__ == "__main__":
             ka_opt = opt_sol.copy(deepcopy=True)
 
         if args.save_optimal_solution:
-            optimal=HDF5File(disc.mesh.mpi_comm(), "optimal.h5", "w")
-            optimal.write(ka_opt, "Optimal_solution")
+            optimal=XDMFFile("optimal.xdmf")
+            optimal.write(ka_opt)
             optimal.close()
 
     with stop_annotating():
@@ -196,7 +196,7 @@ if __name__ == "__main__":
         mode = ka_opt.copy(deepcopy = True)
         for i in range(0, 5):
             plt.figure()
-            mode.vector()[:] = U[:,i]
+            mode.vector().set_local(U[:,i])
             plot(mode)
         plt.show()
     

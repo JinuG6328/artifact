@@ -4,5 +4,5 @@ import numpy as np
 
 def dot_to_function(V,u,y):
     v = Function(V)
-    v.vector()[:] = np.ascontiguousarray(u.dot(y))
+    v.vector().set_local(np.ascontiguousarray(u.dot(y)))
     return v

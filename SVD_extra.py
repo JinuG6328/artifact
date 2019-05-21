@@ -280,7 +280,7 @@ def randomized_svd1(M, n_components, n_oversamples=10, n_iter='auto',
     # Change m to rf
     # project M to the (k + p) dimensional space using the basis vectors
     #
-    B = safe_sparse_dot(M, Q)
+    B = safe_sparse_dot(M.T, Q)
     B = B.T
 
     # compute the SVD on the thin matrix: (k + p) wide

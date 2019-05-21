@@ -40,7 +40,7 @@ class Misfit(object):
 
 
     def add_args(parser):
-        parser.add_argument("-f", "--misfit_full_space", action="store_false", help="make misfit using full space")
+        parser.add_argument("-f", "--misfit_full_space", action="store_true", help="make misfit using full space")
         parser.add_argument("-nt", "--num_components_misfit", type=int, default=9, help="number of compoents in misfit (4, 9, 16, 25, ...))")
 
     
