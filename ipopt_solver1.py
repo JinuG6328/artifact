@@ -49,7 +49,7 @@ class IPOPTSolver1(OptimizationSolver):
         def fun_g(x, user_data=None):
             A = self.J_hat_fun.controls[0].function_space()
             a = Function(A)
-            a.vector()[:] = self.U.dot(x)
+            a.vector().set_local(self.U.dot(x))
             out = numpy.array(self.J_hat_fun(a), dtype=float)
             return out
 
@@ -57,7 +57,7 @@ class IPOPTSolver1(OptimizationSolver):
             # flag = True  means 'tell me the sparsity pattern';
             # flag = False means 'give me the damn Jacobian'.
         def jac_g(x, flag, user_data=None):
-            j = self.U.T.dot(self.J_hat_fun.derivative().vector()[:])
+            j = self.U.T.dot(self.J_hat_fun.derivative().vector().get_vector())
             out = numpy.array(gather(j), dtype=float)
             return out
 

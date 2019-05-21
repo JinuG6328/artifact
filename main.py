@@ -13,7 +13,7 @@ from sklearn.utils.extmath import svd_flip
 from pyadjoint.overloaded_function import overload_function
 from pyadjoint.tape import stop_annotating, get_working_tape
 
-from SVD_extra import get_matrix, safe_sparse_dot, randomized_range_finder, randomized_svd1, reject_outlier
+from SVD_ import get_matrix, safe_sparse_dot, randomized_range_finder, randomized_svd1, reject_outlier
 from ipopt_solver1 import *
 from resi_const import *
 
@@ -119,6 +119,9 @@ if __name__ == "__main__":
             optimal=XDMFFile("optimal.xdmf")
             optimal.write(ka_opt)
             optimal.close()
+            optimal1=XDMFFile("optimal.h5")
+            optimal1.write(ka_opt)
+            optimal1.close()
 
     with stop_annotating():
         #########################################################################
@@ -140,7 +143,7 @@ if __name__ == "__main__":
             Sigma = np.loadtxt('Sigma.txt')
             VT = np.loadtxt('VT.txt')            
         else:
-            U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = len(ka_opt.vector()[:]), matrix=args.matrix)
+            U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = len(ka_opt.vector().get_local()), matrix=args.matrix)
 
         if args.save_subspace:
             np.savetxt('U.txt', U)
@@ -182,8 +185,8 @@ if __name__ == "__main__":
         ka_opt1 = solver1.solve()     
         
         ka_opt2 = ka_opt.copy(deepcopy = True)
-        # ka_opt2.vector()[:] += U.dot(ka_opt1)
-        ka_opt2.vector()[:] = U.dot(ka_opt1)
+        # ka_opt2.vector().add_lcoal(U.dot(ka_opt1))
+        ka_opt2.vector().set_local(U.dot(ka_opt1))
 
         firstplot = plot(ka_opt2)
         plt.colorbar(firstplot, ticks = [-0.01, 0, 0.005, 0.01])

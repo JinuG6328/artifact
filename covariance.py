@@ -27,11 +27,11 @@ class PriorPrecHessian():
         z = b.copy(deepcopy=True)
         if self.transpose:
             z1 = z.copy(deepcopy=True)
-            z1.vector()[:] = p_A.dot(b.vector()[:])
-            z.vector()[:] = self._rf.hessian(z1).vector()[:]
+            z1.vector().set_local(p_A.dot(b.vector().get_local()))
+            z.vector().set_local(self._rf.hessian(z1).vector().get_local())
             return z
         else:
-            hessian = self._rf.hessian(b).vector()[:]
-            z.vector()[:] = p_A.dot(hessian)
+            hessian = self._rf.hessian(b).vector().get_local()
+            z.vector().set_local(p_A.dot(hessian))
             return z
         

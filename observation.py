@@ -59,7 +59,7 @@ class Observation(object):
         with get_working_tape().name_scope(self.name + "_observed"):
             d = d_w.copy(deepcopy=True)
             size_d_n = d_w.vector().size()
-            d.vector()[:] += np.random.normal(0, noise, size_d_n)
+            d.vector().add_local(np.random.normal(0, noise, size_d_n))
         self.observed = d
         
         if self.obs_write_file:
