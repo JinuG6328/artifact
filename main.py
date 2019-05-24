@@ -119,8 +119,8 @@ if __name__ == "__main__":
             optimal=XDMFFile("optimal.xdmf")
             optimal.write(ka_opt)
             optimal.close()
-            optimal1=XDMFFile("optimal.h5")
-            optimal1.write(ka_opt)
+            optimal1=HDF5File(disc.mesh.mpi_comm(), "optimal.h5", "w")
+            optimal1.write(ka_opt, "Optimal_solution")
             optimal1.close()
 
     with stop_annotating():
@@ -207,8 +207,8 @@ if __name__ == "__main__":
     ## Finding the range of the pressure at specific point with full space###
     #########################################################################
 
-    import pdb
-    pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
 
     switch = args.reduced_boundary
     ## Pressure at the 0.5, 0.8    
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     else:
         J_pred = ReducedFunctional_(obj_val, Control(ai))
 
-    get_working_tape().visualise()
+    # get_working_tape().visualise()
 
     while True:
         print(msft_val, pred_val, obj_val)
@@ -242,13 +242,9 @@ if __name__ == "__main__":
             lamda = AdjFloat(lamda * 2.)
             if switch:
                 ka_pred_low = solver_pred_low.solve()
-                import pdb
-                pdb.set_trace()
-                ka_opt[:] = ka_pred_low[:]
+                ka_opt.set_local(ka_pred_low.get_local())
             else:
                 ai_pred_low = solver_pred_low.solve()
-                import pdb
-                pdb.set_trace()
                 ai[:] = ai_pred_low[:]
         if switch:
             ka_loop = Function(ka_opt.function_space())
