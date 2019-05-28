@@ -232,9 +232,10 @@ if __name__ == "__main__":
         J_pred = ReducedFunctional_(obj_val, Control(ai))
 
     # get_working_tape().visualise()
-
-    while True:
-        print(msft_val, pred_val, obj_val)
+    file = open('minimization.txt','w') 
+    iter_n = 0
+    while iter_n < 5:
+        file.write("%f %f %f \n" % (msft_val, pred_val, obj_val))
         with stop_annotating():
             problem_pred_low = MinimizationProblem(J_pred)
             parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : args.verbosity_ipopt}
@@ -259,8 +260,43 @@ if __name__ == "__main__":
             J_pred = ReducedFunctional_(obj_val, Control(ka_opt))
         else:
             J_pred = ReducedFunctional_(obj_val, Control(ai))
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
+        iter_n = iter_n +1
+    file.close()
+
+    file = open('maximization.txt','w') 
+    iter_n = 0
+    while iter_n < 5:
+        file.write("%f %f %f \n" % (msft_val, pred_val, obj_val))
+        with stop_annotating():
+            problem_pred_up = MaximizationProblem(J_pred)
+            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : args.verbosity_ipopt}
+            solver_pred_up = IPOPTSolver(problem_pred_up, parameters=parameters)
+            lamda = AdjFloat(lamda * 2.)
+            if switch:
+                ka_pred_up = solver_pred_up.solve()
+                ka_opt.set_local(ka_pred_up.get_local())
+            else:
+                ai_pred_up = solver_pred_up.solve()
+                ai[:] = ai_pred_up[:]
+        if switch:
+            ka_loop = Function(ka_opt.function_space())
+            ka_loop.assign(ka_opt)
+        else:
+            ka_loop = dot_to_function(disc.parameter_space, U, ai) + ka_opt
+        msft_val = misfit(ka_loop)
+        pred_val = pred(ka_loop)
+        obj_val = msft_val + lamda * pred_val
+        print(msft_val, pred_val, obj_val)
+        if switch:
+            J_pred = ReducedFunctional_(obj_val, Control(ka_opt))
+        else:
+            J_pred = ReducedFunctional_(obj_val, Control(ai))
+        # import pdb
+        # pdb.set_trace()
+        iter_n = iter_n +1
+    file.close()
         # TODO: save/write (msft_fal, pred_val, lamda) to file for plotting
 
         #########################################################################
