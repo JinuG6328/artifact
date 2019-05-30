@@ -237,7 +237,10 @@ if __name__ == "__main__":
     msft_val_old = 1
     msft_min = 1
     pred_min = pred_val
-    while abs((msft_val_old-msft_val)/msft_val_old) > 0.1 or lamda > 1.e-5:
+    print(misfit(ka_opt))
+    ka_opt1 = ka_opt.copy(deepcopy = True)
+    while msft_val > 0.0003 or lamda > 1.e-5:
+    #while abs((msft_val_old-msft_val)/msft_val_old) > 0.1 or lamda > 1.e-5:
         file.write("%f %f %f \n" % (msft_val, pred_val, obj_val))    
         with stop_annotating():
             problem_pred_up = MinimizationProblem(J_pred)
@@ -258,8 +261,8 @@ if __name__ == "__main__":
         pred_val = pred(ka_loop)
         if msft_val_old < msft_val:
             lamda = AdjFloat(lamda / 2.)
-        else:
-            lamda = AdjFloat(lamda * 2.)
+        # else:
+        #     lamda = AdjFloat(lamda * 2.)
         msft_val_old = msft_val
         msft_min = min(msft_min, msft_val)
         if msft_min == msft_val:
@@ -273,6 +276,11 @@ if __name__ == "__main__":
             J_pred = ReducedFunctional_(obj_val, Control(ka_opt))
         else:
             J_pred = ReducedFunctional_(obj_val, Control(ai))
+        plt.figure()
+        plot(ka_loop)
+        plt.figure()
+        plot(ka_opt1)
+        plt.show()
         # import pdb
         # pdb.set_trace()
     file.write("%f %f\n" % (msft_min, pred_min))    
@@ -306,8 +314,8 @@ if __name__ == "__main__":
         pred_val = pred(ka_loop)
         if msft_val_old < msft_val:
             lamda = AdjFloat(lamda / 2.)
-        else:
-            lamda = AdjFloat(lamda * 2.)
+        # else:
+        #     lamda = AdjFloat(lamda * 2.)
 
         msft_val_old = msft_val
         msft_min = min(msft_min, msft_val)
