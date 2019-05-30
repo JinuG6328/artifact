@@ -248,7 +248,7 @@ if __name__ == "__main__":
                 ka_opt.vector().set_local(ka_pred_up.vector().get_local())
             else:
                 ai_pred_up = solver_pred_up.solve()
-            c    ai[:] = ai_pred_up[:]
+                ai[:] = ai_pred_up[:]
         if switch:
             ka_loop = Function(ka_opt.function_space())
             ka_loop.assign(ka_opt)
