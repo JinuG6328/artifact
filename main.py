@@ -234,9 +234,9 @@ if __name__ == "__main__":
     # # get_working_tape().visualise()
     lamda = AdjFloat(1.e-3)
     file = open('minimization.txt','w') 
-    iter_n = 0
     msft_val_old = 1
-    while abs((msft_val_old-msft_val)/msft_val_old) > 0.001 or lamda > 1.e-5:
+    msft_min = 1
+    while abs((msft_val_old-msft_val)/msft_val_old) > 0.1 or lamda > 1.e-5:
         file.write("%f %f %f \n" % (msft_val, pred_val, obj_val))    
         with stop_annotating():
             problem_pred_up = MinimizationProblem(J_pred)
@@ -257,8 +257,13 @@ if __name__ == "__main__":
         pred_val = pred(ka_loop)
         if msft_val_old < msft_val:
             lamda = AdjFloat(lamda / 2.)
-
+        else:
+            lamda = AdjFloat(lamda * 2.)
         msft_val_old = msft_val
+        msft_min = min(msft_min, msft_val)
+        if msft_min == msft_val:
+            pred_min = pred_val
+
         obj_val = msft_val + lamda * pred_val
         print("msft_val, pred_val, obj_val, lamda")
         print(msft_val, pred_val, obj_val, lamda)
@@ -269,14 +274,14 @@ if __name__ == "__main__":
             J_pred = ReducedFunctional_(obj_val, Control(ai))
         # import pdb
         # pdb.set_trace()
-        iter_n = iter_n +1
+    file.write("%f %f\n" % (msft_min, pred_min))    
     file.close()
 
     lamda = AdjFloat(1.e-3)
     file = open('maximization.txt','w') 
-    iter_n = 0
     msft_val_old = 1
-    while abs((msft_val_old-msft_val)/msft_val_old) < 0.001 or lamda < 1.e-5:
+    msft_min = 1
+    while abs((msft_val_old-msft_val)/msft_val_old) < 0.1 or lamda < 1.e-5:
         file.write("%f %f %f \n" % (msft_val, pred_val, obj_val))    
         with stop_annotating():
             problem_pred_up = MinimizationProblem(J_pred)
@@ -299,8 +304,14 @@ if __name__ == "__main__":
         pred_val = pred(ka_loop)
         if msft_val_old < msft_val:
             lamda = AdjFloat(lamda / 2.)
-
+        else:
+            lamda = AdjFloat(lamda * 2.)
+            
         msft_val_old = msft_val
+        msft_min = min(msft_min, msft_val)
+        if msft_min == msft_val:
+            pred_max = pred_max
+
         obj_val = msft_val - lamda * pred_val
         print("msft_val, pred_val, obj_val, lamda")
         print(msft_val, pred_val, obj_val, lamda)
@@ -311,7 +322,7 @@ if __name__ == "__main__":
             J_pred = ReducedFunctional_(obj_val, Control(ai))
         # import pdb
         # pdb.set_trace()
-        iter_n = iter_n +1
+    file.write("%f %f\n" % (msft_min, pred_max))   
     file.close()
         # TODO: save/write (msft_fal, pred_val, lamda) to file for plotting
 
