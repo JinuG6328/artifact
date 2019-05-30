@@ -232,56 +232,58 @@ if __name__ == "__main__":
         J_pred = ReducedFunctional_(obj_val, Control(ai))
 
     # # get_working_tape().visualise()
-    lamda = AdjFloat(1.e-3)
-    file = open('minimization.txt','w') 
-    msft_val_old = 1
-    msft_min = 1
-    while abs((msft_val_old-msft_val)/msft_val_old) > 0.1 or lamda > 1.e-5:
-        file.write("%f %f %f \n" % (msft_val, pred_val, obj_val))    
-        with stop_annotating():
-            problem_pred_up = MinimizationProblem(J_pred)
-            parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : args.verbosity_ipopt}
-            solver_pred_up = IPOPTSolver(problem_pred_up, parameters=parameters)
-            if switch:
-                ka_pred_up = solver_pred_up.solve()
-                ka_opt.vector().set_local(ka_pred_up.vector().get_local())
-            else:
-                ai_pred_up = solver_pred_up.solve()
-                ai[:] = ai_pred_up[:]
-        if switch:
-            ka_loop = Function(ka_opt.function_space())
-            ka_loop.assign(ka_opt)
-        else:
-            ka_loop = dot_to_function(disc.parameter_space, U, ai) + ka_opt
-        msft_val = misfit(ka_loop)
-        pred_val = pred(ka_loop)
-        if msft_val_old < msft_val:
-            lamda = AdjFloat(lamda / 2.)
-        else:
-            lamda = AdjFloat(lamda * 2.)
-        msft_val_old = msft_val
-        msft_min = min(msft_min, msft_val)
-        if msft_min == msft_val:
-            pred_min = pred_val
+    # lamda = AdjFloat(1.e-3)
+    # file = open('minimization.txt','w') 
+    # msft_val_old = 1
+    # msft_min = 1
+    # pred_min = pred_val
+    # while abs((msft_val_old-msft_val)/msft_val_old) > 0.1 or lamda > 1.e-5:
+    #     file.write("%f %f %f \n" % (msft_val, pred_val, obj_val))    
+    #     with stop_annotating():
+    #         problem_pred_up = MinimizationProblem(J_pred)
+    #         parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : args.verbosity_ipopt}
+    #         solver_pred_up = IPOPTSolver(problem_pred_up, parameters=parameters)
+    #         if switch:
+    #             ka_pred_up = solver_pred_up.solve()
+    #             ka_opt.vector().set_local(ka_pred_up.vector().get_local())
+    #         else:
+    #             ai_pred_up = solver_pred_up.solve()
+    #         c    ai[:] = ai_pred_up[:]
+    #     if switch:
+    #         ka_loop = Function(ka_opt.function_space())
+    #         ka_loop.assign(ka_opt)
+    #     else:
+    #         ka_loop = dot_to_function(disc.parameter_space, U, ai) + ka_opt
+    #     msft_val = misfit(ka_loop)
+    #     pred_val = pred(ka_loop)
+    #     if msft_val_old < msft_val:
+    #         lamda = AdjFloat(lamda / 2.)
+    #     else:
+    #         lamda = AdjFloat(lamda * 2.)
+    #     msft_val_old = msft_val
+    #     msft_min = min(msft_min, msft_val)
+    #     if msft_min == msft_val:
+    #         pred_min = pred_val
 
-        obj_val = msft_val + lamda * pred_val
-        print("msft_val, pred_val, obj_val, lamda")
-        print(msft_val, pred_val, obj_val, lamda)
-        msft_val_old = msft_val
-        if switch:
-            J_pred = ReducedFunctional_(obj_val, Control(ka_opt))
-        else:
-            J_pred = ReducedFunctional_(obj_val, Control(ai))
-        # import pdb
-        # pdb.set_trace()
-    file.write("%f %f\n" % (msft_min, pred_min))    
-    file.close()
+    #     obj_val = msft_val + lamda * pred_val
+    #     print("msft_val, pred_val, obj_val, lamda")
+    #     print(msft_val, pred_val, obj_val, lamda)
+    #     msft_val_old = msft_val
+    #     if switch:
+    #         J_pred = ReducedFunctional_(obj_val, Control(ka_opt))
+    #     else:
+    #         J_pred = ReducedFunctional_(obj_val, Control(ai))
+    #     # import pdb
+    #     # pdb.set_trace()
+    # file.write("%f %f\n" % (msft_min, pred_min))    
+    # file.close()
 
     lamda = AdjFloat(1.e-3)
     file = open('maximization.txt','w') 
     msft_val_old = 1
     msft_min = 1
-    while abs((msft_val_old-msft_val)/msft_val_old) < 0.1 or lamda < 1.e-5:
+    pred_max = pred_val
+    while abs((msft_val_old-msft_val)/msft_val_old) > 0.01 or lamda > 1.e-5:
         file.write("%f %f %f \n" % (msft_val, pred_val, obj_val))    
         with stop_annotating():
             problem_pred_up = MinimizationProblem(J_pred)
@@ -306,11 +308,11 @@ if __name__ == "__main__":
             lamda = AdjFloat(lamda / 2.)
         else:
             lamda = AdjFloat(lamda * 2.)
-            
+
         msft_val_old = msft_val
         msft_min = min(msft_min, msft_val)
         if msft_min == msft_val:
-            pred_max = pred_max
+            pred_max = pred_val
 
         obj_val = msft_val - lamda * pred_val
         print("msft_val, pred_val, obj_val, lamda")
