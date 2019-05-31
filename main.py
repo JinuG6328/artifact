@@ -28,7 +28,7 @@ from regularization import Regularization
 from block_new import UpdatedBlock
 
 from numpy_block_var import Ndarray
-
+from log_overloaded_function import Log
 ## We already defined our customized function dot_to_function.
 ## Using this function, we could successfuly use adjoint equation to estimate the parameters. 
 from dot_to_function import dot_to_function
@@ -222,9 +222,9 @@ if __name__ == "__main__":
         msft_val = misfit(ka_new_opt)
 
     lamda = AdjFloat(1.e-3)
-
+    epsilon = AdjFloat(0.1)
     with get_working_tape().name_scope("continuation_prediction"):
-        obj_val = msft_val + lamda * pred_val
+        obj_val = Log(epsilon-msft_val) + lamda * pred_val
 
     if switch:
         J_pred = ReducedFunctional_(obj_val, Control(ka_opt))
@@ -259,8 +259,8 @@ if __name__ == "__main__":
             ka_loop = dot_to_function(disc.parameter_space, U, ai) + ka_opt
         msft_val = misfit(ka_loop)
         pred_val = pred(ka_loop)
-        if msft_val_old < msft_val:
-            lamda = AdjFloat(lamda / 2.)
+        #if msft_val_old < msft_val:
+        lamda = AdjFloat(lamda * 2.)
         # else:
         #     lamda = AdjFloat(lamda * 2.)
         msft_val_old = msft_val
@@ -268,7 +268,7 @@ if __name__ == "__main__":
         if msft_min == msft_val:
             pred_min = pred_val
 
-        obj_val = msft_val + lamda * pred_val
+        obj_val = Log(epsilon-msft_val) + lamda * pred_val
         print("msft_val, pred_val, obj_val, lamda")
         print(msft_val, pred_val, obj_val, lamda)
         msft_val_old = msft_val
@@ -276,11 +276,11 @@ if __name__ == "__main__":
             J_pred = ReducedFunctional_(obj_val, Control(ka_opt))
         else:
             J_pred = ReducedFunctional_(obj_val, Control(ai))
-        plt.figure()
-        plot(ka_loop)
-        plt.figure()
-        plot(ka_opt1)
-        plt.show()
+        # plt.figure()
+        # plot(ka_loop)
+        # plt.figure()
+        # plot(ka_opt1)
+        # plt.show()
         # import pdb
         # pdb.set_trace()
     file.write("%f %f\n" % (msft_min, pred_min))    
@@ -312,8 +312,8 @@ if __name__ == "__main__":
             ka_loop = dot_to_function(disc.parameter_space, U, ai) + ka_opt
         msft_val = misfit(ka_loop)
         pred_val = pred(ka_loop)
-        if msft_val_old < msft_val:
-            lamda = AdjFloat(lamda / 2.)
+        # if msft_val_old < msft_val:
+        lamda = AdjFloat(lamda * 2.)
         # else:
         #     lamda = AdjFloat(lamda * 2.)
 

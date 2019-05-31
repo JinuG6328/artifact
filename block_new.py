@@ -15,7 +15,7 @@ class UpdatedBlock(Block):
         self.umat = mat
         self.y = self.umat.T
         self.func = func
-        self.add_dependency(array.block_variable)
+        self.add_dependency(array)
 
     def __str__(self):
         return "UpdatedBlock"
