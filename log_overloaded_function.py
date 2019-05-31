@@ -7,7 +7,10 @@ from pyadjoint.overloaded_function import overload_function
 import numpy as np
 
 def Log_(input):
-    return np.log(input.real)
+    v = input.real
+    if v <= 0.:
+        return float('inf')
+    return np.log(v)
 
 class LogBlock(Block):
     def __init__(self, func, **kwargs):
@@ -23,9 +26,7 @@ class LogBlock(Block):
         return adj_input / inputs[0]
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        import pdb
-        pdb.set_trace()
-        return np.log(inputs[0])
+        return Log_(inputs[0])
 
 
 Log = overload_function(Log_, LogBlock)

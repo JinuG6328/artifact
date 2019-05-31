@@ -224,7 +224,7 @@ if __name__ == "__main__":
     lamda = AdjFloat(1.e-3)
     epsilon = AdjFloat(0.1)
     with get_working_tape().name_scope("continuation_prediction"):
-        obj_val = Log(epsilon-msft_val) + lamda * pred_val
+        obj_val = - Log(epsilon-msft_val) + lamda * pred_val
 
     if switch:
         J_pred = ReducedFunctional_(obj_val, Control(ka_opt))
@@ -268,7 +268,7 @@ if __name__ == "__main__":
         if msft_min == msft_val:
             pred_min = pred_val
 
-        obj_val = Log(epsilon-msft_val) + lamda * pred_val
+        obj_val = - Log(epsilon-msft_val) + lamda * pred_val
         print("msft_val, pred_val, obj_val, lamda")
         print(msft_val, pred_val, obj_val, lamda)
         msft_val_old = msft_val
