@@ -1,6 +1,6 @@
+import tensorflow
 import argparse
 import os 
-import tensorflow
 
 from fenics import *
 from fenics_adjoint import *
@@ -30,6 +30,7 @@ from block_new import UpdatedBlock
 
 from numpy_block_var import Ndarray
 from log_overloaded_function import Log
+from sqrt_overloaded_function import Sqrt
 ## We already defined our customized function dot_to_function.
 ## Using this function, we could successfuly use adjoint equation to estimate the parameters. 
 from dot_to_function import dot_to_function
@@ -214,7 +215,6 @@ if __name__ == "__main__":
     ## Pressure at the 0.5, 0.8    
     pred = Prediction(args, disc, name="prediction")
     
-    ## Minimization
     ka_opt1 = ka_opt.copy(deepcopy = True)
     ka_new_opt1 = Function(disc.parameter_space)
     ka_new_opt1.assign(ka_opt1 + Uai)
@@ -226,20 +226,24 @@ if __name__ == "__main__":
         pred_val = pred(ka_new_opt1)
         msft_val = misfit(ka_new_opt1)
 
-    lamda = AdjFloat(1.e-3)
+    lamda = AdjFloat(1.e-4)
     epsilon = AdjFloat(0.1)
     with get_working_tape().name_scope("continuation_prediction"):
         obj_val = - Log(epsilon-msft_val) + lamda * pred_val
 
     if switch:
         J_pred = ReducedFunctional_(obj_val, Control(ka_opt1))
+        file = open('minimization_f.txt','w') 
     else:
         J_pred = ReducedFunctional_(obj_val, Control(ai))
+        file = open('minimization_r.txt','w') 
 
     # get_working_tape().visualise()
-    lamda = AdjFloat(1.e-3)
-    
-    while msft_val < 0.01 and lamda < 0.1:
+    file.write("%g %g %g %g\n" % (msft_val, pred_val, obj_val, lamda))
+
+    while msft_val < 0.001 and lamda < 0.1:
+    #while abs((msft_val_old-msft_val)/msft_val_old) > 0.1 or lamda > 1.e-5:
+           
         with stop_annotating():
             problem_pred_low = MinimizationProblem(J_pred)
             parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : args.verbosity_ipopt}
@@ -247,11 +251,9 @@ if __name__ == "__main__":
             if switch:
                 ka_pred_low = solver_pred_low.solve()
                 ka_opt1.vector().set_local(ka_pred_low.vector().get_local())
-                file = open('minimization_f.txt','w') 
             else:
                 ai_pred_low = solver_pred_low.solve()
                 ai[:] = ai_pred_low[:]      
-                file = open('minimization_r.txt','w')
         if switch:
             ka_loop = Function(ka_opt1.function_space())
             ka_loop.assign(ka_opt1)
@@ -266,8 +268,7 @@ if __name__ == "__main__":
         obj_val = - Log(epsilon-msft_val) + lamda * pred_val
         print("msft_val, pred_val, obj_val, lamda")
         print(msft_val, pred_val, obj_val, lamda)
-        file.write("%g %g %g %g\n" % (msft_val, pred_val, obj_val, lamda))    
-        
+        file.write("%g %g %g %g\n" % (msft_val, pred_val, obj_val, lamda)) 
         if switch:
             J_pred = ReducedFunctional_(obj_val, Control(ka_opt1))
         else:
@@ -275,18 +276,18 @@ if __name__ == "__main__":
          
     file.close()
     lower_limit = state.solve(ka = ka_loop)
-    lower = plot(abs(lower_limit.sub(1)))
+    lower = plot(lower_limit[1])
     plt.colorbar(lower)
     # get_working_tape().visualise()
     
     ## Maximization 
     intermediate = np.zeros(n_components)
-    ai1 = Ndarray(intermediate.shape, buffer=intermediate)
-    Uai1 = dot_to_function(disc.parameter_space, U, ai1)
+    ai = Ndarray(intermediate.shape, buffer=intermediate)
+    Uai = dot_to_function(disc.parameter_space, U, ai)
 
     ka_opt2 = ka_opt.copy(deepcopy = True)
     ka_new_opt2 = Function(disc.parameter_space)
-    ka_new_opt2.assign(ka_opt2 + Uai1)
+    ka_new_opt2.assign(ka_opt2 + Uai)
     
     if switch:
         pred_val = pred(ka_opt2)
@@ -295,20 +296,25 @@ if __name__ == "__main__":
         pred_val = pred(ka_new_opt2)
         msft_val = misfit(ka_new_opt2)
 
-    lamda = AdjFloat(1.e-3)
+    lamda = AdjFloat(1.e-4)
     epsilon = AdjFloat(0.1)
     with get_working_tape().name_scope("continuation_prediction"):
-        obj_val = Log(epsilon-msft_val) - lamda * pred_val
+        obj_val = - Log(epsilon-msft_val) - lamda * pred_val
+        # obj_val = msft_val - lamda * pred_val
 
     if switch:
         J_pred = ReducedFunctional_(obj_val, Control(ka_opt2))
+        file = open('maximization_f.txt','w') 
     else:
-        J_pred = ReducedFunctional_(obj_val, Control(ai1))
+        J_pred = ReducedFunctional_(obj_val, Control(ai))
+        file = open('maximization_r.txt','w') 
 
     # get_working_tape().visualise()
-    lamda = AdjFloat(1.e-3)
-    
-    while msft_val < 0.01 and lamda < 0.1:
+    file.write("%g %g %g %g\n" % (msft_val, pred_val, obj_val, lamda))
+
+    while msft_val < 0.001 and lamda < 0.01:
+    #while abs((msft_val_old-msft_val)/msft_val_old) > 0.1 or lamda > 1.e-5:
+        # file.write("%g %g %g %g\n" % (msft_val, pred_val, obj_val, lamda))    
         with stop_annotating():
             problem_pred_up = MinimizationProblem(J_pred)
             parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : args.verbosity_ipopt}
@@ -316,41 +322,44 @@ if __name__ == "__main__":
             if switch:
                 ka_pred_up = solver_pred_up.solve()
                 ka_opt2.vector().set_local(ka_pred_up.vector().get_local())
-                file = open('maximization_f.txt','w') 
             else:
                 ai_pred_up = solver_pred_up.solve()
-                ai1[:] = ai_pred_up[:]      
-                file = open('maximization_r.txt','w')
+                ai[:] = ai_pred_up[:]      
         if switch:
             ka_loop = Function(ka_opt2.function_space())
             ka_loop.assign(ka_opt2)
         else:
-            ka_loop = dot_to_function(disc.parameter_space, U, ai1) + ka_opt
+            ka_loop = dot_to_function(disc.parameter_space, U, ai) + ka_opt
 
         msft_val = misfit(ka_loop)
         pred_val = pred(ka_loop)
         
         lamda = AdjFloat(lamda * 2.)
         
-        obj_val = Log(epsilon-msft_val) - lamda * pred_val
+        obj_val = - Log(epsilon-msft_val) - lamda * pred_val
+        # obj_val = msft_val - lamda * pred_val
         print("msft_val, pred_val, obj_val, lamda")
         print(msft_val, pred_val, obj_val, lamda)
-        file.write("%g %g %g %g\n" % (msft_val, pred_val, obj_val, lamda))    
         
         if switch:
             J_pred = ReducedFunctional_(obj_val, Control(ka_opt2))
         else:
-            J_pred = ReducedFunctional_(obj_val, Control(ai1))
+            J_pred = ReducedFunctional_(obj_val, Control(ai))
+        file.write("%g %g %g %g\n" % (msft_val, pred_val, obj_val, lamda))    
          
-
-    upper_limit = state.solve(ka = ka_loop)
+    file.close()
     plt.figure()
-    upper = plot(abs(upper_limit.sub(1)))
-    plt.colorbar(upper)
+    uper_limit = state.solve(ka = ka_loop)
+    uper = plot(uper_limit[1])
+    plt.colorbar(uper)
+    plt.figure()
+    uper1 = plot(uper_limit[0])
+    plt.colorbar(uper1)
+    # plt.show()
 
+    
     import pdb
     pdb.set_trace()
-    
         # TODO: save/write (msft_fal, pred_val, lamda) to file for plotting
 
         #########################################################################
