@@ -32,10 +32,10 @@ class Prediction(object):
             sigma = 0.01
             # q_expr = Expression("1/(2*pi*sigma)*exp(-(0.5/sigma)*((x[0]-x_0)*(x[0]-x_0)+(x[1]-y_0)*(x[1]-y_0)))", x_0 = x_0, y_0 = y_0, sigma = sigma, degree = 3)
             q_expr = Expression("exp(-(0.5/sigma)*((x[0]-x_0)*(x[0]-x_0)+(x[1]-y_0)*(x[1]-y_0)))", x_0 = x_0, y_0 = y_0, sigma = sigma, degree = 3)
-            q_adjflt = assemble(q_expr*w[1]*w[1]*q_expr*dx)
-        return Sqrt(q_adjflt)
-            # q_adjflt = assemble(q_expr*w[1]*dx)
-        # return q_adjflt
+        #     q_adjflt = assemble(q_expr*(w[1]*w[1])*dx)
+        # return Sqrt(q_adjflt)
+            q_adjflt = assemble(q_expr*w[1]*dx)
+        return q_adjflt
 
     def prediction_boundaries(self, ka):
         n1 = FacetNormal(self.disc.mesh)
