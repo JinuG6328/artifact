@@ -49,11 +49,11 @@ if __name__ == "__main__":
     parser.add_argument("-nm", "--number_of_iterations_for_model", type=int, default=30, help="number of iterations for optimization")
     parser.add_argument("-nb", "--number_of_iterations_for_boundary", type=int, default=30, help="number of iterations for getting pressure boundary")
     parser.add_argument("-rb", "--reduced_boundary", action="store_false", help="pressure boundary from the reduced space otherwise that from full space")
-    parser.add_argument("-so", "--save_optimal_solution", action="store_true", help="save optimal solution to file")
-    parser.add_argument("-lo", "--load_optimal_solution", action="store_true", help="load optimal solution from file")
-    parser.add_argument("-ss", "--save_subspace", action="store_true", help="save subspaces to file")
-    parser.add_argument("-ls", "--load_subspace", action="store_true", help="load subspaces from file")
-    parser.add_argument("-ll", "--load_loop", action="store_true", help="load solution in the loop from file")
+    parser.add_argument("-so", "--save_optimal_solution", type=str, default=None, help="save optimal solution to .h5 file ")
+    parser.add_argument("-lo", "--load_optimal_solution", type=str, default=None, help="load optimal solution from .h5 file")
+    parser.add_argument("-ss", "--save_subspace", type=str, default=None, help="save subspaces to file")
+    parser.add_argument("-ls", "--load_subspace", type=str, default=None, help="load subspaces from file")
+    parser.add_argument("-ll", "--load_loop", type=str, default=None, help="load solution in the loop from file")
     parser.add_argument("-vf", "--verbosity-fenics", type=int, default=40, help="how verbose fenics output is (higher is quieter)")
     parser.add_argument("-vi", "--verbosity-ipopt", type=int, default=0, help="how verbose ipopt is (lower is quieter)")
     parser.add_argument("-m", "--matrix", action="store_true", help="using numpy matrix computation")
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     # Solving minimization problem and save the result
     if args.load_optimal_solution:
         ka_opt = state.default_parameters()
-        optimal=HDF5File(disc.mesh.mpi_comm(), "optimal.h5", "r")
+        optimal=HDF5File(disc.mesh.mpi_comm(), args.load_optimal_solution, "r")
         optimal.read(ka_opt, "Optimal_solution")
         optimal.close()
 
@@ -120,10 +120,10 @@ if __name__ == "__main__":
             ka_opt = opt_sol.copy(deepcopy=True)
 
         if args.save_optimal_solution:
-            optimal=XDMFFile("optimal.xdmf")
+            optimal=XDMFFile(args.save_optimal_solution.replace('h5','xdmf')
             optimal.write(ka_opt)
             optimal.close()
-            optimal1=HDF5File(disc.mesh.mpi_comm(), "optimal.h5", "w")
+            optimal1=HDF5File(disc.mesh.mpi_comm(), args.save_optimal_solution, "w")
             optimal1.write(ka_opt, "Optimal_solution")
             optimal1.close()
 
@@ -143,16 +143,20 @@ if __name__ == "__main__":
         n_extra = args.number_of_extra_vectors
 
         if args.load_subspace:
-            U = np.loadtxt('U.txt')
-            Sigma = np.loadtxt('Sigma.txt')
-            VT = np.loadtxt('VT.txt')            
+            f = open(args.load_subspace, 'r')
+            U = np.load(f)
+            Sigma = np.load(f)
+            VT = np.load(f)
+            f.close()
         else:
             U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = len(ka_opt.vector().get_local()), matrix=args.matrix)
 
         if args.save_subspace:
-            np.savetxt('U.txt', U)
-            np.savetxt('Sigma.txt', Sigma)
-            np.savetxt('VT.txt', VT)
+            f = open(args.save_subspace, 'w')
+            np.save(f,U)
+            np.save(f,Sigma)
+            np.save(f,VT)
+            f.close()
     
     #########################################################################
     ## With U(VT), we can define the reduced space problem: #################
