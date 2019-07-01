@@ -260,15 +260,15 @@ if __name__ == "__main__":
                 ka_loop.assign(ka_opt1)
             else:
                 with stop_annotating():
-                    problem_pred_low = MinimizationProblem(J_pred)
+                    problem_pred = MinimizationProblem(J_pred)
                     parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : args.verbosity_ipopt}
-                    solver_pred_low = IPOPTSolver(problem_pred_low, parameters=parameters)
+                    solver_pred = IPOPTSolver(problem_pred, parameters=parameters)
                     if switch:
-                        ka_pred_low = solver_pred_low.solve()
-                        ka_opt1.vector().set_local(ka_pred_low.vector().get_local())
+                        ka_pred = solver_pred.solve()
+                        ka_opt1.vector().set_local(ka_pred.vector().get_local())
                     else:
-                        ai_pred_low = solver_pred_low.solve()
-                        ai[:] = ai_pred_low[:]      
+                        ai_pred = solver_pred.solve()
+                        ai[:] = ai_pred[:]      
                 if switch:
                     ka_loop = Function(ka_opt1.function_space())
                     ka_loop.assign(ka_opt1)
@@ -300,11 +300,11 @@ if __name__ == "__main__":
             loop_ = np.asarray(loop)
             np.save('%s.npy' %name[j], loop_)     
         
-        lower_figure = plt.figure()
-        lower_limit = state.solve(ka = ka_loop)
-        lower = plot(lower_limit[1])
+        figure = plt.figure()
+        limit = state.solve(ka = ka_loop)
+        lower = plot(limit[1])
         plt.colorbar(lower)
-        pkl.dump(lower_figure,open('%s.pickle' %name[j],'wb'))
+        pkl.dump(figure,open('%s.pickle' %name[j],'wb'))
 
     plt.show()
 
