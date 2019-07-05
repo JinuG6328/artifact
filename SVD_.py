@@ -5,7 +5,6 @@ from sklearn.utils import *
 from sklearn.utils.extmath import svd_flip
 import numpy as np
 from covariance import PriorPrecHessian
-#import tensorflow as tf
 
 def get_matrix(A):
     fs = A.controls[0].function_space()

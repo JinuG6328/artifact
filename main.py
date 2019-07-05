@@ -16,8 +16,6 @@ from pyadjoint.overloaded_function import overload_function
 from pyadjoint.tape import stop_annotating, get_working_tape
 
 from SVD_ import get_matrix, safe_sparse_dot, randomized_range_finder, randomized_svd1, reject_outlier
-from ipopt_solver1 import *
-from resi_const import *
 
 from covariance import PriorPrecHessian
 from initialize import *
