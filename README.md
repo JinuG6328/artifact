@@ -14,6 +14,7 @@ We use Anaconda to make the environment.
 By using the jgoenv.txt file, you can install the environment.
 
 ```
+conda config --append channels conda-forge
 conda config --append channels imperial-college-research-computing
 conda create --name jgoenv --file jgoenv.txt
 ```
