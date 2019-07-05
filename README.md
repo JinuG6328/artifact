@@ -14,12 +14,12 @@ We use Anaconda to make the environment.
 By using the jgoenv.txt file, you can install the environment.
 
 ```
-conda create jgoenv jgoenv.txt
+conda create --name jgoenv --file jgoenv.txt
 ```
 
 ## Running the test
 
 ```
 conda activate jgoenv
-python main.py -n 16 -o -so -ss
+python main.py -n 16 -so opt_sol -ss subspace
 ```
