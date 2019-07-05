@@ -31,7 +31,7 @@ from block_new import UpdatedBlock
 
 from numpy_block_var import Ndarray
 from log_overloaded_function import Log
-from sqrt_overloaded_function import Sqrt
+
 ## We already defined our customized function dot_to_function.
 ## Using this function, we could successfuly use adjoint equation to estimate the parameters. 
 from dot_to_function import dot_to_function
@@ -80,6 +80,7 @@ if __name__ == "__main__":
 
     ## Next we defined the Misfit using discretization.
     misfit = Misfit(args, disc, obs=obs, state=state)
+
     #########################################################################
     ## Inverse problem with full space and 9 componets observation ##########
     #########################################################################
@@ -94,8 +95,6 @@ if __name__ == "__main__":
     ## Next we combined misfit and regularization to define reduced functional objective
     m = misfit(ka)
     r = reg(ka)
-
-    # print(m, r)
 
     with get_working_tape().name_scope("objective"):
         objective = m + r
@@ -148,7 +147,7 @@ if __name__ == "__main__":
             U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = len(ka_opt.vector().get_local()), matrix=args.matrix)
 
         if args.save_subspace:
-            np.save(args.subspaces,[U, Sigma, VT])
+            np.save(args.save_subspace,[U, Sigma, VT])
     
     #########################################################################
     ## With U(VT), we can define the reduced space problem: #################
@@ -241,8 +240,6 @@ if __name__ == "__main__":
         else:
             J_pred = ReducedFunctional_(obj_val, Control(ai))
             file = open('%s.txt' %name[j],'w') 
-
-        # get_working_tape().visualise()
 
         i = 0
         try: 

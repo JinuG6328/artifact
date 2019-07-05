@@ -6,8 +6,6 @@ from discretization import Discretization
 from state import State
 from observation import Observation
 
-from sqrt_overloaded_function import Sqrt
-
 class Prediction(object):
 
     def __init__(self, args, disc, obs=None, state=None, name = "prediction"):
@@ -26,14 +24,10 @@ class Prediction(object):
     def prediction_center(self, ka, x_0 = 0.5, y_0 = 0.8):
         w = self.state.solve(ka=ka)
         w = self.obs.apply(w)
-        # import pdb
-        # pdb.set_trace()
+
         with get_working_tape().name_scope(self.name + "_center"):
             sigma = 0.01
-            # q_expr = Expression("1/(2*pi*sigma)*exp(-(0.5/sigma)*((x[0]-x_0)*(x[0]-x_0)+(x[1]-y_0)*(x[1]-y_0)))", x_0 = x_0, y_0 = y_0, sigma = sigma, degree = 3)
             q_expr = Expression("exp(-(0.5/sigma)*((x[0]-x_0)*(x[0]-x_0)+(x[1]-y_0)*(x[1]-y_0)))", x_0 = x_0, y_0 = y_0, sigma = sigma, degree = 3)
-        #     q_adjflt = assemble(q_expr*(w[1]*w[1])*dx)
-        # return Sqrt(q_adjflt)
             q_adjflt = assemble(q_expr*w[1]*dx)
         return q_adjflt
 
