@@ -140,7 +140,7 @@ if __name__ == "__main__":
         n_extra = args.number_of_extra_vectors
 
         if args.load_subspace:
-            [U, Sigma, VT] = np.load(args.load_subspace+".npy")
+            [U, Sigma, VT] = np.load(args.load_subspace+".npy", allow_pickle=True)
         else:
             U, Sigma, VT = randomized_svd1(priorprehessian, n_components= n_components, n_iter= n_iter, n_oversamples = n_extra, size = len(ka_opt.vector().get_local()), matrix=args.matrix)
 
@@ -227,7 +227,7 @@ if __name__ == "__main__":
             msft_val = misfit(ka_new_opt1)
 
         lamda = AdjFloat(1.e-3)
-        epsilon = AdjFloat(0.1)
+        epsilon = AdjFloat(0.01)
         with get_working_tape().name_scope("continuation_prediction"):
             
             obj_val = - Log(epsilon-msft_val) +(-1)**j * lamda * pred_val
@@ -240,16 +240,23 @@ if __name__ == "__main__":
             file = open('%s.txt' %name[j],'w') 
 
         i = 0
+        # import pdb
+        # pdb.set_trace()
         try: 
-            loop = np.load('%s.npy' %name[j])
+            filename = str(epsilon).replace('.','') + name[j]
+            loop = np.load('%s.npy' %filename)
             args.load_loop = True
         except:
             loop =[]
             args.load_loop = False
+        # loop =[]
+        # args.load_loop = False  
 
-        while msft_val < 1.e-6 or i == 0:
+        while msft_val < 1e-4 or i == 0:
             if args.load_loop:
                 with stop_annotating():
+                    # import pdb
+                    # pdb.set_trace()
                     ka_opt1.vector().set_local(loop[i])   
                 ka_loop = Function(ka_opt1.function_space())
                 ka_loop.assign(ka_opt1)
@@ -293,12 +300,21 @@ if __name__ == "__main__":
         
         if args.load_loop == False:
             loop_ = np.asarray(loop)
-            np.save('%s.npy' %name[j], loop_)     
+            filename1 = str(epsilon)[:1]+str(epsilon)[2:]+name[j]
+            # import pdb
+            # pdb.set_trace()
+            np.save('%s.npy' %filename1, loop_)     
         
         figure = plt.figure()
         limit = state.solve(ka = ka_loop)
-        lower = plot(limit[1])
+        # import pdb
+        # pdb.set_trace()
+        asdf, sdf = limit.split()
+        lower = plot(sdf)
         plt.colorbar(lower)
+        # figure1 = plt.figure()
+        # lower = plot(limit[2])
+        # plt.colorbar(lower)
         pkl.dump(figure,open('%s.pickle' %name[j],'wb'))
 
     plt.show()
