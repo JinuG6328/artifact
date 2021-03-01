@@ -227,7 +227,7 @@ if __name__ == "__main__":
             msft_val = misfit(ka_new_opt1)
 
         lamda = AdjFloat(1.e-3)
-        epsilon = AdjFloat(0.01)
+        epsilon = AdjFloat(1.e-3)
         with get_working_tape().name_scope("continuation_prediction"):
             
             obj_val = - Log(epsilon-msft_val) +(-1)**j * lamda * pred_val
@@ -242,17 +242,17 @@ if __name__ == "__main__":
         i = 0
         # import pdb
         # pdb.set_trace()
-        try: 
-            filename = str(epsilon).replace('.','') + name[j]
-            loop = np.load('%s.npy' %filename)
-            args.load_loop = True
-        except:
-            loop =[]
-            args.load_loop = False
-        # loop =[]
-        # args.load_loop = False  
+        # try: 
+        #     filename = str(epsilon).replace('.','') + name[j]
+        #     loop = np.load('%s.npy' %filename)
+        #     args.load_loop = True
+        # except:
+        #     loop =[]
+        #     args.load_loop = False
+        loop =[]
+        args.load_loop = False  
 
-        while msft_val < 1e-4 or i == 0:
+        while msft_val < epsilon*0.01 or i == 0:
             if args.load_loop:
                 with stop_annotating():
                     # import pdb
@@ -263,7 +263,7 @@ if __name__ == "__main__":
             else:
                 with stop_annotating():
                     problem_pred = MinimizationProblem(J_pred)
-                    parameters = {"acceptable_tol": 1.0e-3, "maximum_iterations": 10, "print_level" : args.verbosity_ipopt}
+                    parameters = {"acceptable_tol": 5.0e-2, "maximum_iterations": 5, "print_level" : args.verbosity_ipopt}
                     solver_pred = IPOPTSolver(problem_pred, parameters=parameters)
                     if switch:
                         ka_pred = solver_pred.solve()
